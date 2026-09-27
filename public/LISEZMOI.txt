@@ -1,0 +1,7 @@
+Dépose ici les deux fichiers suivants (mêmes noms exacts) :
+
+- logo-club.png   -> logo du club, PNG avec fond transparent, affiché sur l'écran d'accueil
+- veille.mp4      -> vidéo diffusée en veille après 1 min d'inactivité (partout sauf dans l'admin)
+
+Une fois les fichiers ajoutés ici, il faut redemander à Claude de reconstruire
+l'application (.exe et .apk) pour qu'ils soient intégrés.

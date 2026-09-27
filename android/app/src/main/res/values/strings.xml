@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">USL Stock</string>
+    <string name="title_activity_main">USL Stock</string>
+    <string name="package_name">fr.agtcweb.uslstock</string>
+    <string name="custom_url_scheme">fr.agtcweb.uslstock</string>
+</resources>
