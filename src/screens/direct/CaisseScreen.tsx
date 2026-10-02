@@ -149,13 +149,11 @@ export default function CaisseScreen() {
       return;
     }
     addArticleToCommande(commande.id, a);
-    if (a.consigneAuto) addConsigne(commande.id, 1);
   }
 
   function handleChooseContenance(contenance: Contenance) {
     if (!commande || !alcoolArticle) return;
     addArticleToCommande(commande.id, alcoolArticle, 1, contenance);
-    if (alcoolArticle.consigneAuto) addConsigne(commande.id, 1);
     setAlcoolArticle(null);
   }
 

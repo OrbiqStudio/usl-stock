@@ -269,6 +269,46 @@ function recomputeAndSave(commande: Commande, lignes: LigneCommande[], remise: R
   });
 }
 
+/** Ajoute (delta > 0) ou retire (delta < 0) des consignes directement dans le tableau de lignes. */
+function shiftConsigne(lignes: LigneCommande[], delta: number) {
+  if (delta === 0) return;
+  const idx = lignes.findIndex((l) => l.articleId === CONSIGNE_ARTICLE_ID);
+  if (idx === -1) {
+    if (delta > 0) {
+      lignes.push({
+        articleId: CONSIGNE_ARTICLE_ID,
+        articleNom: CONSIGNE_NOM,
+        quantite: delta,
+        prixUnitaire: CONSIGNE_PRIX,
+        tauxTVA: CONSIGNE_TVA,
+        sousTotal: CONSIGNE_PRIX * delta,
+      });
+    }
+    return;
+  }
+  const next = lignes[idx].quantite + delta;
+  if (next <= 0) lignes.splice(idx, 1);
+  else lignes[idx] = { ...lignes[idx], quantite: next, sousTotal: next * lignes[idx].prixUnitaire };
+}
+
+/** Nombre de consignes générées par une ligne de commande (article avec consigne ou boissons d'un pack). */
+function consignesDeLigne(ligne: LigneCommande): number {
+  if (ligne.articleId === CONSIGNE_ARTICLE_ID) return 0;
+  if (!ligne.packId) {
+    return articlesCol.get(ligne.articleId)?.consigneAuto ? ligne.quantite : 0;
+  }
+  const pack = packsCol.get(ligne.packId);
+  const fixes = (pack?.articles ?? []).reduce(
+    (s, pa) => s + (articlesCol.get(pa.articleId)?.consigneAuto ? pa.quantite : 0),
+    0
+  );
+  const choix = (ligne.packChoix ?? []).reduce(
+    (s, c) => s + (articlesCol.get(c.articleId)?.consigneAuto ? 1 : 0),
+    0
+  );
+  return (fixes + choix) * ligne.quantite;
+}
+
 export function addArticleToCommande(
   commandeId: string,
   article: Article,
@@ -298,6 +338,7 @@ export function addArticleToCommande(
       ...(contenance ? { contenance } : {}),
     });
   }
+  if (article.consigneAuto) shiftConsigne(lignes, quantite);
   recomputeAndSave(commande, lignes, commande.remise);
 }
 
@@ -319,6 +360,7 @@ export function addPackToCommande(commandeId: string, pack: Pack, choix?: PackSl
       ? { packChoix: choix.map(({ articleId, articleNom: nom }) => ({ articleId, articleNom: nom })) }
       : {}),
   });
+  shiftConsigne(lignes, consignesDeLigne(lignes[lignes.length - 1]));
   recomputeAndSave(commande, lignes, commande.remise);
 }
 
@@ -364,10 +406,15 @@ export function updateLigneQuantite(commandeId: string, index: number, quantite:
   const commande = commandesCol.get(commandeId);
   if (!commande) return;
   const lignes = [...commande.lignes];
+  const ancienne = lignes[index];
+  if (!ancienne) return;
+  const parUnite = consignesDeLigne(ancienne) / (ancienne.quantite || 1);
+  shiftConsigne(lignes, Math.round(parUnite * (Math.max(quantite, 0) - ancienne.quantite)));
+  const pos = lignes.indexOf(ancienne);
   if (quantite <= 0) {
-    lignes.splice(index, 1);
+    lignes.splice(pos, 1);
   } else {
-    lignes[index] = { ...lignes[index], quantite, sousTotal: lignes[index].prixUnitaire * quantite };
+    lignes[pos] = { ...ancienne, quantite, sousTotal: ancienne.prixUnitaire * quantite };
   }
   recomputeAndSave(commande, lignes, commande.remise);
 }
@@ -375,7 +422,9 @@ export function updateLigneQuantite(commandeId: string, index: number, quantite:
 export function removeLigne(commandeId: string, index: number) {
   const commande = commandesCol.get(commandeId);
   if (!commande) return;
+  const retiree = commande.lignes[index];
   const lignes = commande.lignes.filter((_, i) => i !== index);
+  if (retiree) shiftConsigne(lignes, -consignesDeLigne(retiree));
   recomputeAndSave(commande, lignes, commande.remise);
 }
 
