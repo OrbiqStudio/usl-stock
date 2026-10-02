@@ -48,6 +48,8 @@ export interface Article {
   stockEnBouteilles: boolean;
   bouteilles1L: number;
   bouteilles15L: number;
+  /** Si vrai, une consigne (CONSIGNE_PRIX) s'ajoute automatiquement à la vente de cet article. */
+  consigneAuto: boolean;
   createdAt: number;
   updatedAt: number;
 }
@@ -97,6 +99,8 @@ export interface LigneCommande {
   sousTotal: number;
   packId?: string;
   contenance?: Contenance;
+  /** Articles choisis par le client pour les "choix" (slots) de ce pack, en plus des articles fixes du pack. */
+  packChoix?: { articleId: string; articleNom: string }[];
 }
 
 export interface Remise {
@@ -131,17 +135,41 @@ export interface PackArticle {
   quantite: number;
 }
 
+/** Une option proposée dans un "choix" de pack (ex: une boisson au choix), avec son ajustement de prix. */
+export interface PackSlotOption {
+  articleId: string;
+  articleNom: string;
+  /** en centimes, TTC — s'ajoute au prix du pack (peut être négatif, ex: -50 pour une boisson moins chère) */
+  prixDelta: number;
+}
+
+/** Un choix que le client doit faire à la vente du pack (ex: "Boisson", "Sandwich"). */
+export interface PackSlot {
+  id: string;
+  label: string;
+  options: PackSlotOption[];
+}
+
 export interface Pack {
   id: string;
   nom: string;
   section: Section;
+  /** Articles toujours inclus dans le pack (en plus des choix éventuels). */
   articles: PackArticle[];
+  /** Choix laissés au client (ex: boisson, sandwich) — vide si le pack est entièrement fixe. */
+  slots: PackSlot[];
   prixPack: number;
   tauxTVA: number;
   imageUrl: string | null;
   actif: boolean;
   createdAt: number;
 }
+
+export const CONSIGNE_ARTICLE_ID = "__consigne__";
+export const CONSIGNE_NOM = "Consigne verre";
+/** en centimes */
+export const CONSIGNE_PRIX = 100;
+export const CONSIGNE_TVA = 20;
 
 export interface Config {
   adminPasswordHash: string;

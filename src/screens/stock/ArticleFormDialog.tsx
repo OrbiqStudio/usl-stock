@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ImagePlus, Star, Trash2, Beer } from "lucide-react";
+import { ImagePlus, Star, Trash2, Beer, PackageCheck } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -56,6 +56,7 @@ export function ArticleFormDialog({
     "50cl": "",
   });
   const [stockEnBouteilles, setStockEnBouteilles] = useState(false);
+  const [consigneAuto, setConsigneAuto] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
@@ -69,6 +70,7 @@ export function ArticleFormDialog({
       setFavori(article?.favori ?? false);
       setEstAlcool(article?.estAlcool ?? false);
       setStockEnBouteilles(article?.stockEnBouteilles ?? false);
+      setConsigneAuto(article?.consigneAuto ?? false);
       setContenancesPrix({
         "25cl": article?.contenances?.["25cl"] != null ? String(centsToEuros(article.contenances["25cl"])) : "",
         "33cl": article?.contenances?.["33cl"] != null ? String(centsToEuros(article.contenances["33cl"])) : "",
@@ -130,6 +132,7 @@ export function ArticleFormDialog({
       estAlcool,
       contenances,
       stockEnBouteilles: bouteillesActif,
+      consigneAuto,
     };
 
     if (article) {
@@ -310,6 +313,13 @@ export function ArticleFormDialog({
                     )}
                   </div>
                 )}
+              </div>
+
+              <div className="flex items-center justify-between rounded-lg border border-border p-3">
+                <Label htmlFor="article-consigne" className="flex items-center gap-2 font-semibold">
+                  <PackageCheck className="h-4 w-4" /> Consigne automatique (+1 €)
+                </Label>
+                <Switch id="article-consigne" checked={consigneAuto} onCheckedChange={setConsigneAuto} />
               </div>
 
               {!estAlcool && (

@@ -1,4 +1,16 @@
-import { Minus, Plus, Trash2, Tag, ShoppingCart, Banknote, CreditCard, FileText, MoreHorizontal } from "lucide-react";
+import {
+  Minus,
+  Plus,
+  Trash2,
+  Tag,
+  ShoppingCart,
+  Banknote,
+  CreditCard,
+  FileText,
+  MoreHorizontal,
+  PackageCheck,
+  PackageMinus,
+} from "lucide-react";
 import type { Commande, MoyenPaiement } from "@/types";
 import { formatEuros } from "@/lib/money";
 
@@ -16,6 +28,8 @@ export function CommandeRecap({
   onRemove,
   onOpenRemise,
   onQuickPay,
+  onAddConsigne,
+  onRemoveConsigne,
 }: {
   commande?: Commande;
   onIncrement: (index: number) => void;
@@ -23,6 +37,8 @@ export function CommandeRecap({
   onRemove: (index: number) => void;
   onOpenRemise: () => void;
   onQuickPay: (moyen: MoyenPaiement) => void;
+  onAddConsigne: () => void;
+  onRemoveConsigne: () => void;
 }) {
   if (!commande) {
     return (
@@ -86,13 +102,27 @@ export function CommandeRecap({
       </div>
 
       <div className="border-t border-border px-5 py-4">
-        <button
-          onClick={onOpenRemise}
-          className="mb-3 flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
-        >
-          <Tag className="h-4 w-4" />
-          {commande.remise ? "Modifier la remise" : "Ajouter une remise"}
-        </button>
+        <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+          <button
+            onClick={onOpenRemise}
+            className="flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
+          >
+            <Tag className="h-4 w-4" />
+            {commande.remise ? "Modifier la remise" : "Ajouter une remise"}
+          </button>
+          <button
+            onClick={onAddConsigne}
+            className="flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
+          >
+            <PackageCheck className="h-4 w-4" /> Consigne
+          </button>
+          <button
+            onClick={onRemoveConsigne}
+            className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-destructive hover:underline"
+          >
+            <PackageMinus className="h-4 w-4" /> Déconsigne
+          </button>
+        </div>
 
         <div className="flex flex-col gap-1 text-sm">
           <div className="flex justify-between text-muted-foreground">

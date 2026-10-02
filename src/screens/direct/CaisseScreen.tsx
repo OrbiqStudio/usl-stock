@@ -14,6 +14,8 @@ import {
 import {
   addArticleToCommande,
   addPackToCommande,
+  addConsigne,
+  removeConsigne,
   annulerCommande,
   createCommande,
   payerCommande,
@@ -32,7 +34,8 @@ import { AnnulerDialog } from "@/screens/direct/components/AnnulerDialog";
 import { EncaissementDialog } from "@/screens/direct/components/EncaissementDialog";
 import { LowStockPopup } from "@/screens/direct/components/LowStockPopup";
 import { ContenanceDialog } from "@/screens/direct/components/ContenanceDialog";
-import type { Article, Contenance, MoyenPaiement, Pack, Section } from "@/types";
+import { PackSlotDialog } from "@/screens/direct/components/PackSlotDialog";
+import type { Article, Contenance, MoyenPaiement, Pack, PackSlotOption, Section } from "@/types";
 import { toast } from "sonner";
 
 export default function CaisseScreen() {
@@ -58,6 +61,7 @@ export default function CaisseScreen() {
   const [encaissementOpen, setEncaissementOpen] = useState(false);
   const [quickMoyen, setQuickMoyen] = useState<MoyenPaiement | null>(null);
   const [alcoolArticle, setAlcoolArticle] = useState<Article | null>(null);
+  const [packSlotTarget, setPackSlotTarget] = useState<Pack | null>(null);
 
   // Find-or-create the working commande for this tablette/match/section.
   useEffect(() => {
@@ -145,11 +149,13 @@ export default function CaisseScreen() {
       return;
     }
     addArticleToCommande(commande.id, a);
+    if (a.consigneAuto) addConsigne(commande.id, 1);
   }
 
   function handleChooseContenance(contenance: Contenance) {
     if (!commande || !alcoolArticle) return;
     addArticleToCommande(commande.id, alcoolArticle, 1, contenance);
+    if (alcoolArticle.consigneAuto) addConsigne(commande.id, 1);
     setAlcoolArticle(null);
   }
 
@@ -175,7 +181,17 @@ export default function CaisseScreen() {
 
   function handleSelectPack(p: Pack) {
     if (!commande) return;
+    if (p.slots.length > 0) {
+      setPackSlotTarget(p);
+      return;
+    }
     addPackToCommande(commande.id, p);
+  }
+
+  function handleConfirmPackSlot(choix: PackSlotOption[]) {
+    if (!commande || !packSlotTarget) return;
+    addPackToCommande(commande.id, packSlotTarget, choix);
+    setPackSlotTarget(null);
   }
 
   function handleAnnulerConfirm(motif: string) {
@@ -258,6 +274,8 @@ export default function CaisseScreen() {
           onRemove={(i) => commande && removeLigne(commande.id, i)}
           onOpenRemise={() => setRemiseOpen(true)}
           onQuickPay={handleQuickPay}
+          onAddConsigne={() => commande && addConsigne(commande.id, 1)}
+          onRemoveConsigne={() => commande && removeConsigne(commande.id, 1)}
         />
       </div>
 
@@ -267,6 +285,12 @@ export default function CaisseScreen() {
         article={alcoolArticle}
         onOpenChange={(o) => !o && setAlcoolArticle(null)}
         onChoose={handleChooseContenance}
+      />
+
+      <PackSlotDialog
+        pack={packSlotTarget}
+        onOpenChange={(o) => !o && setPackSlotTarget(null)}
+        onConfirm={handleConfirmPackSlot}
       />
 
       <RemiseDialog

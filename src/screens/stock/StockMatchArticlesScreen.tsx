@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Package, Check } from "lucide-react";
+import { Package, Minus, Plus } from "lucide-react";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,12 +13,44 @@ import { toast } from "sonner";
 
 function ArticleThumb({ article }: { article: Article }) {
   return (
-    <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center overflow-hidden rounded-lg bg-usl-gray">
+    <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl bg-usl-gray">
       {article.imageUrl ? (
         <img src={article.imageUrl} alt="" className="h-full w-full object-cover" />
       ) : (
-        <Package className="h-6 w-6 text-muted-foreground" />
+        <Package strokeWidth={1.5} className="h-6 w-6 text-muted-foreground" />
       )}
+    </div>
+  );
+}
+
+function QtyStepper({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  function step(delta: number) {
+    onChange(String(Math.max(0, (parseInt(value, 10) || 0) + delta)));
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        onClick={() => step(-1)}
+        className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-usl-gray text-foreground transition-colors active:bg-slate-200"
+        aria-label="Diminuer"
+      >
+        <Minus strokeWidth={1.75} className="h-4 w-4" />
+      </button>
+      <Input
+        type="number"
+        inputMode="numeric"
+        className="w-14 border-0 bg-transparent p-0 text-center text-lg font-bold shadow-none [appearance:textfield] focus-visible:border-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+      <button
+        onClick={() => step(1)}
+        className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground transition-opacity active:opacity-90"
+        aria-label="Augmenter"
+      >
+        <Plus strokeWidth={1.75} className="h-4 w-4" />
+      </button>
     </div>
   );
 }
@@ -31,16 +63,15 @@ function StockRow({ article }: { article: Article }) {
     if (!dirty) setValue(String(article.stock));
   }, [article.stock, dirty]);
 
-  function save() {
-    const n = Math.max(0, parseInt(value, 10) || 0);
+  function commit(next?: string) {
+    const n = Math.max(0, parseInt(next ?? value, 10) || 0);
     updateArticle(article.id, { stock: n });
     setValue(String(n));
     setDirty(false);
-    toast.success(`Stock de "${article.nom}" mis à jour`);
   }
 
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-border bg-white p-3">
+    <div className="flex items-center gap-4 rounded-2xl border border-border bg-white p-4">
       <ArticleThumb article={article} />
       <div className="min-w-0 flex-1">
         <div className="truncate font-semibold">{article.nom}</div>
@@ -52,20 +83,14 @@ function StockRow({ article }: { article: Article }) {
             : formatEuros(article.prixVente)}
         </div>
       </div>
-      <Input
-        type="number"
-        inputMode="numeric"
-        className="w-24 text-center"
+      <QtyStepper
         value={value}
-        onChange={(e) => {
-          setValue(e.target.value);
+        onChange={(v) => {
+          setValue(v);
           setDirty(true);
+          commit(v);
         }}
-        onKeyDown={(e) => e.key === "Enter" && save()}
       />
-      <Button size="icon-sm" variant={dirty ? "success" : "secondary"} onClick={save} aria-label="Enregistrer">
-        <Check className="h-4 w-4" />
-      </Button>
     </div>
   );
 }
@@ -88,15 +113,13 @@ function BottleStockRow({ article }: { article: Article }) {
 
   function save() {
     updateArticle(article.id, { stock: totalVerres, bouteilles1L: n1L, bouteilles15L: n15L });
-    setB1L(String(n1L));
-    setB15L(String(n15L));
     setDirty(false);
     toast.success(`Stock de "${article.nom}" mis à jour (${totalVerres} verres)`);
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-border bg-white p-3">
-      <div className="flex items-center gap-3">
+    <div className="flex flex-col gap-3 rounded-2xl border border-border bg-white p-4">
+      <div className="flex items-center gap-4">
         <ArticleThumb article={article} />
         <div className="min-w-0 flex-1">
           <div className="truncate font-semibold">{article.nom}</div>
@@ -106,14 +129,14 @@ function BottleStockRow({ article }: { article: Article }) {
               .join(" · ")}
           </div>
         </div>
-        <div className="text-right">
-          <div className="text-2xl font-extrabold text-primary">{totalVerres}</div>
-          <div className="text-xs text-muted-foreground">verre{totalVerres > 1 ? "s" : ""}</div>
+        <div className="rounded-full bg-usl-blue-light px-4 py-2 text-center">
+          <div className="text-lg font-extrabold leading-none text-primary">{totalVerres}</div>
+          <div className="text-[10px] text-primary/70">verre{totalVerres > 1 ? "s" : ""}</div>
         </div>
       </div>
       <div className="flex flex-wrap items-end gap-3 border-t border-border pt-3">
         <div className="flex flex-col gap-1">
-          <Label className="text-xs">Bouteilles 1L (4 verres)</Label>
+          <Label className="text-xs text-muted-foreground">Bouteilles 1L (4 verres)</Label>
           <Input
             type="number"
             inputMode="numeric"
@@ -127,7 +150,7 @@ function BottleStockRow({ article }: { article: Article }) {
           />
         </div>
         <div className="flex flex-col gap-1">
-          <Label className="text-xs">Bouteilles 1,5L (6 verres)</Label>
+          <Label className="text-xs text-muted-foreground">Bouteilles 1,5L (6 verres)</Label>
           <Input
             type="number"
             inputMode="numeric"
@@ -140,8 +163,8 @@ function BottleStockRow({ article }: { article: Article }) {
             onKeyDown={(e) => e.key === "Enter" && save()}
           />
         </div>
-        <Button variant={dirty ? "success" : "secondary"} onClick={save}>
-          <Check className="h-4 w-4" /> Enregistrer
+        <Button variant={dirty ? "success" : "secondary"} className="rounded-full" onClick={save}>
+          Enregistrer
         </Button>
       </div>
     </div>
@@ -159,7 +182,7 @@ export default function StockMatchArticlesScreen() {
 
   if (!activeMatch) {
     return (
-      <div className="flex h-screen w-screen flex-col items-center justify-center gap-4 bg-usl-gray text-center">
+      <div className="flex h-screen w-screen flex-col items-center justify-center gap-4 bg-white text-center">
         <h2 className="text-2xl font-bold">Aucun match en cours</h2>
         <button onClick={() => navigate(`/gestion/${sec}`)} className="text-primary underline">
           Retour
@@ -169,17 +192,17 @@ export default function StockMatchArticlesScreen() {
   }
 
   return (
-    <div className="flex h-screen w-screen flex-col bg-usl-gray">
+    <div className="flex h-screen w-screen flex-col bg-white">
       <ScreenHeader
         title={dossier ? dossier.nom : "Articles"}
         subtitle={`Stock — ${activeMatch.nom}`}
         onBack={() => navigate(`/gestion/${sec}/stock`)}
       />
 
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto px-6 pb-6 pt-2">
         {articles.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-3 text-center text-muted-foreground">
-            <Package className="h-12 w-12 opacity-40" />
+            <Package strokeWidth={1.5} className="h-12 w-12 opacity-40" />
             <p className="text-lg">Aucun article dans ce dossier</p>
           </div>
         ) : (

@@ -54,7 +54,7 @@ export function ArticleGrid({
                 <button
                   key={p.id}
                   onClick={() => onSelectPack(p)}
-                  className="flex flex-col overflow-hidden rounded-2xl border-2 border-transparent bg-white text-left shadow-sm transition-all active:scale-[0.98]"
+                  className="flex flex-col overflow-hidden rounded-2xl border-2 border-border bg-white text-left transition-colors hover:border-primary active:scale-[0.98]"
                 >
                   <div className="flex h-24 items-center justify-center bg-usl-blue-light text-primary">
                     {p.imageUrl ? (
@@ -93,8 +93,8 @@ export function ArticleGrid({
                 <div
                   key={a.id}
                   className={cn(
-                    "flex flex-col overflow-hidden rounded-2xl border-2 bg-white shadow-sm transition-all",
-                    selected ? "border-primary" : "border-transparent",
+                    "flex flex-col overflow-hidden rounded-2xl border-2 bg-white transition-colors",
+                    selected ? "border-primary" : "border-border",
                     rupture && "opacity-40"
                   )}
                 >
@@ -110,7 +110,7 @@ export function ArticleGrid({
                       <Package className="h-8 w-8 text-muted-foreground" />
                     )}
                     {a.favori && (
-                      <span className="absolute left-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-white shadow-sm">
+                      <span className="absolute left-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-white">
                         <Star className="h-3.5 w-3.5 fill-usl-warning text-usl-warning" />
                       </span>
                     )}

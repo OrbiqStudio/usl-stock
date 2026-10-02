@@ -1,52 +1,71 @@
 import { useMemo, useState, useEffect } from "react";
-import {
-  Package,
-  TriangleAlert,
-  Wallet,
-  TrendingUp,
-  Receipt,
-  PiggyBank,
-  Banknote,
-  CreditCard,
-  ScrollText,
-  CircleDollarSign,
-  Download,
-} from "lucide-react";
+import { Package, Wallet, PiggyBank, Download } from "lucide-react";
 import { useCollection } from "@/hooks/useCollection";
 import { articlesCol, commandesCol } from "@/lib/collections";
 import { useMatchs } from "@/hooks/useData";
 import { formatEuros } from "@/lib/money";
 import { generateExcelExport } from "@/lib/export";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { TYPE_MATCH_LABELS, type MoyenPaiement } from "@/types";
+import { TYPE_MATCH_LABELS, MOYEN_PAIEMENT_LABELS, type MoyenPaiement } from "@/types";
+import { cn } from "@/lib/utils";
 
-function StatCard({
-  icon,
-  label,
-  value,
-  colorClass,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  colorClass: string;
-}) {
+function HeroCard({ label, value }: { label: string; value: string }) {
   return (
-    <Card>
-      <CardContent className="flex items-center gap-4 p-5">
-        <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl ${colorClass}`}>
-          {icon}
-        </div>
-        <div className="min-w-0">
-          <div className="truncate text-sm text-muted-foreground">{label}</div>
-          <div className="truncate text-xl font-extrabold">{value}</div>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="flex flex-col justify-between rounded-3xl bg-foreground p-6 text-background">
+      <span className="text-sm text-background/60">{label}</span>
+      <span className="mt-6 text-3xl font-bold tracking-tight">{value}</span>
+    </div>
   );
 }
+
+function StatCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex flex-col justify-between rounded-3xl border border-border bg-white p-6">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="mt-6 text-3xl font-bold tracking-tight">{value}</span>
+    </div>
+  );
+}
+
+const BAR_ORDER: MoyenPaiement[] = ["especes", "cb", "cheque", "autre"];
+
+function PaymentBarChart({ parMoyen }: { parMoyen: Record<MoyenPaiement, number> }) {
+  const max = Math.max(...BAR_ORDER.map((k) => parMoyen[k]), 1);
+
+  return (
+    <div className="rounded-3xl border border-border bg-white p-6">
+      <span className="text-sm font-semibold">Encaissements par moyen de paiement</span>
+      <div className="mt-8 flex h-44 items-end gap-4 px-2">
+        {BAR_ORDER.map((key) => {
+          const value = parMoyen[key];
+          const heightPct = Math.max(4, Math.round((value / max) * 100));
+          const isMax = value === max && value > 0;
+          return (
+            <div key={key} className="flex flex-1 flex-col items-center gap-2">
+              <span className="text-xs font-semibold text-muted-foreground">
+                {value > 0 ? formatEuros(value) : ""}
+              </span>
+              <div className="flex h-32 w-full items-end">
+                <div
+                  className={cn("w-full rounded-t-lg transition-all", isMax ? "bg-primary" : "bg-foreground/85")}
+                  style={{ height: `${heightPct}%` }}
+                />
+              </div>
+              <span className="text-xs text-muted-foreground">{MOYEN_PAIEMENT_LABELS[key]}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+const STATUT_LABELS: Record<string, string> = {
+  planifie: "Planifié",
+  en_cours: "En cours",
+  termine: "Terminé",
+};
 
 export function AdminDashboard() {
   const articles = useCollection(articlesCol);
@@ -103,102 +122,99 @@ export function AdminDashboard() {
 
   return (
     <div className="flex flex-col gap-5">
-      <Card>
-        <CardContent className="flex flex-wrap items-center gap-4 p-5">
-          <div className="flex flex-1 flex-col gap-2">
-            <span className="text-sm font-semibold text-muted-foreground">Match</span>
-            <Select value={matchId} onValueChange={setMatchId}>
-              <SelectTrigger className="max-w-sm">
-                <SelectValue placeholder="Choisir un match" />
-              </SelectTrigger>
-              <SelectContent>
-                {matchs.map((m) => (
-                  <SelectItem key={m.id} value={m.id}>
-                    {m.nom} — {new Date(m.date).toLocaleDateString("fr-FR")}
-                    {m.statut === "en_cours" ? " (en cours)" : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          {selectedMatch && (
-            <div className="text-sm text-muted-foreground">
-              {TYPE_MATCH_LABELS[selectedMatch.type]} · {stats.nbCommandes} commande
-              {stats.nbCommandes > 1 ? "s" : ""} payée{stats.nbCommandes > 1 ? "s" : ""}
-            </div>
-          )}
-          <Button onClick={handleExport} disabled={!matchId}>
-            <Download className="h-4 w-4" /> Export Excel de ce match
-          </Button>
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard
-          icon={<Package className="h-6 w-6" />}
-          label="Articles au total"
-          value={String(stats.nbArticles)}
-          colorClass="bg-usl-blue-light text-primary"
-        />
-        <StatCard
-          icon={<TriangleAlert className="h-6 w-6" />}
-          label="Articles en alerte stock"
-          value={String(stats.nbAlerte)}
-          colorClass="bg-usl-danger-light text-destructive"
-        />
-        <StatCard
-          icon={<Wallet className="h-6 w-6" />}
-          label="Valeur du stock (achat)"
-          value={formatEuros(stats.valeurAchat)}
-          colorClass="bg-usl-warning-light text-usl-warning"
-        />
-        <StatCard
-          icon={<PiggyBank className="h-6 w-6" />}
-          label="Valeur du stock (vente)"
-          value={formatEuros(stats.valeurVente)}
-          colorClass="bg-usl-success-light text-success"
-        />
-        <StatCard
-          icon={<Receipt className="h-6 w-6" />}
-          label="Chiffre d'affaires (match sélectionné)"
-          value={formatEuros(stats.ca)}
-          colorClass="bg-usl-blue-light text-primary"
-        />
-        <StatCard
-          icon={<TrendingUp className="h-6 w-6" />}
-          label="Marge estimée (match sélectionné)"
-          value={formatEuros(stats.marge)}
-          colorClass="bg-usl-success-light text-success"
-        />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Select value={matchId} onValueChange={setMatchId}>
+          <SelectTrigger className="w-64 rounded-full border-border bg-white">
+            <SelectValue placeholder="Choisir un match" />
+          </SelectTrigger>
+          <SelectContent>
+            {matchs.map((m) => (
+              <SelectItem key={m.id} value={m.id}>
+                {m.nom} — {new Date(m.date).toLocaleDateString("fr-FR")}
+                {m.statut === "en_cours" ? " (en cours)" : ""}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Button onClick={handleExport} disabled={!matchId} className="rounded-full">
+          <Download className="h-4 w-4" /> Exporter ce match
+        </Button>
       </div>
 
-      <div>
-        <h3 className="mb-3 text-lg font-bold">Détail des encaissements — {selectedMatch?.nom ?? "…"}</h3>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard
-            icon={<Banknote className="h-6 w-6" />}
-            label="Espèces"
-            value={formatEuros(stats.parMoyen.especes)}
-            colorClass="bg-usl-success-light text-success"
-          />
-          <StatCard
-            icon={<CreditCard className="h-6 w-6" />}
-            label="Carte bancaire"
-            value={formatEuros(stats.parMoyen.cb)}
-            colorClass="bg-usl-blue-light text-primary"
-          />
-          <StatCard
-            icon={<ScrollText className="h-6 w-6" />}
-            label="Chèque"
-            value={formatEuros(stats.parMoyen.cheque)}
-            colorClass="bg-usl-warning-light text-usl-warning"
-          />
-          <StatCard
-            icon={<CircleDollarSign className="h-6 w-6" />}
-            label="Autre"
-            value={formatEuros(stats.parMoyen.autre)}
-            colorClass="bg-usl-gray text-muted-foreground"
-          />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <HeroCard label="Chiffre d'affaires" value={formatEuros(stats.ca)} />
+        <StatCard label="Marge estimée" value={formatEuros(stats.marge)} />
+        <StatCard label="Commandes payées" value={String(stats.nbCommandes)} />
+        <StatCard label="Articles en alerte" value={String(stats.nbAlerte)} />
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.4fr_1fr]">
+        <PaymentBarChart parMoyen={stats.parMoyen} />
+
+        <div className="rounded-3xl border border-border bg-white p-6">
+          <span className="text-sm font-semibold">Match sélectionné</span>
+          {selectedMatch ? (
+            <div className="mt-4 flex flex-col gap-3">
+              <div>
+                <div className="text-lg font-bold leading-tight">{selectedMatch.nom}</div>
+                <div className="text-sm text-muted-foreground">
+                  {TYPE_MATCH_LABELS[selectedMatch.type]} · {new Date(selectedMatch.date).toLocaleDateString("fr-FR")}
+                </div>
+              </div>
+              <span
+                className={cn(
+                  "w-fit rounded-full px-3 py-1 text-xs font-semibold",
+                  selectedMatch.statut === "en_cours"
+                    ? "bg-usl-success-light text-success"
+                    : selectedMatch.statut === "termine"
+                      ? "bg-usl-gray text-muted-foreground"
+                      : "bg-usl-blue-light text-primary"
+                )}
+              >
+                {STATUT_LABELS[selectedMatch.statut]}
+              </span>
+              <div className="mt-1 flex flex-col gap-2 border-t border-border pt-3 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Fond initial</span>
+                  <span className="font-semibold">
+                    {selectedMatch.totalFondInitial != null ? formatEuros(selectedMatch.totalFondInitial) : "—"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Fond final</span>
+                  <span className="font-semibold">
+                    {selectedMatch.totalFondFinal != null ? formatEuros(selectedMatch.totalFondFinal) : "—"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="mt-4 text-sm text-muted-foreground">Aucun match</p>
+          )}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-6 rounded-3xl border border-border bg-white px-6 py-5">
+        <div className="flex items-center gap-3">
+          <Package className="h-5 w-5 text-muted-foreground" strokeWidth={1.75} />
+          <div>
+            <div className="text-xs text-muted-foreground">Articles au total</div>
+            <div className="text-base font-bold">{stats.nbArticles}</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <Wallet className="h-5 w-5 text-muted-foreground" strokeWidth={1.75} />
+          <div>
+            <div className="text-xs text-muted-foreground">Valeur stock (achat)</div>
+            <div className="text-base font-bold">{formatEuros(stats.valeurAchat)}</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <PiggyBank className="h-5 w-5 text-muted-foreground" strokeWidth={1.75} />
+          <div>
+            <div className="text-xs text-muted-foreground">Valeur stock (vente)</div>
+            <div className="text-base font-bold">{formatEuros(stats.valeurVente)}</div>
+          </div>
         </div>
       </div>
     </div>

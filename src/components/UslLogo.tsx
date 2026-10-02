@@ -24,12 +24,12 @@ export function UslLogo({ size = 72, className }: { size?: number; className?: s
   return (
     <div
       className={cn(
-        "flex items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-md",
+        "flex items-center justify-center rounded-full bg-primary text-primary-foreground",
         className
       )}
       style={{ width: size, height: size }}
     >
-      <Shield style={{ width: size * 0.6, height: size * 0.6 }} />
+      <Shield strokeWidth={1.5} style={{ width: size * 0.5, height: size * 0.5 }} />
     </div>
   );
 }

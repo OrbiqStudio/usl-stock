@@ -1,37 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import { ShoppingBag, CupSoda } from "lucide-react";
-import { ScreenHeader } from "@/components/ScreenHeader";
+import { ArrowLeft, ShoppingBag, CupSoda } from "lucide-react";
 import { useArticlesBySection } from "@/hooks/useData";
-
-function SectionCard({
-  to,
-  icon,
-  title,
-  subtitle,
-  colorClass,
-}: {
-  to: string;
-  icon: React.ReactNode;
-  title: string;
-  subtitle: string;
-  colorClass: string;
-}) {
-  const navigate = useNavigate();
-  return (
-    <button
-      onClick={() => navigate(to)}
-      className="flex flex-col items-center gap-4 rounded-2xl border border-border bg-white p-10 shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg active:translate-y-0"
-    >
-      <div className={`flex h-20 w-20 items-center justify-center rounded-2xl ${colorClass}`}>
-        {icon}
-      </div>
-      <div className="text-center">
-        <div className="text-xl font-bold">{title}</div>
-        <div className="text-sm text-muted-foreground">{subtitle}</div>
-      </div>
-    </button>
-  );
-}
 
 export default function StockSectionsScreen() {
   const navigate = useNavigate();
@@ -39,25 +8,46 @@ export default function StockSectionsScreen() {
   const buvette = useArticlesBySection("buvette");
 
   return (
-    <div className="flex h-screen w-screen flex-col bg-usl-gray">
-      <ScreenHeader title="Gestion des stocks" onBack={() => navigate("/")} />
-      <div className="flex flex-1 items-center justify-center px-8">
-        <div className="grid w-full max-w-3xl grid-cols-1 gap-6 sm:grid-cols-2">
-          <SectionCard
-            to="/gestion/boutique"
-            icon={<ShoppingBag className="h-10 w-10" />}
-            title="Boutique"
-            subtitle={`${boutique.length} article${boutique.length > 1 ? "s" : ""}`}
-            colorClass="bg-usl-blue-light text-primary"
-          />
-          <SectionCard
-            to="/gestion/buvette"
-            icon={<CupSoda className="h-10 w-10" />}
-            title="Buvette / Bar"
-            subtitle={`${buvette.length} article${buvette.length > 1 ? "s" : ""}`}
-            colorClass="bg-usl-warning-light text-usl-warning"
-          />
-        </div>
+    <div className="relative flex h-screen w-screen flex-col items-center justify-center bg-white px-8">
+      <button
+        onClick={() => navigate("/")}
+        className="absolute left-8 top-8 flex h-12 w-12 items-center justify-center rounded-full text-usl-gray-dark transition-colors hover:bg-usl-gray hover:text-primary"
+        aria-label="Retour"
+      >
+        <ArrowLeft strokeWidth={1.5} className="h-6 w-6" />
+      </button>
+
+      <div className="text-center">
+        <h1 className="text-3xl font-bold tracking-tight">Gestion des stocks</h1>
+        <p className="mt-1.5 text-base text-muted-foreground">Choisis une section</p>
+      </div>
+
+      <div className="mt-20 grid w-full max-w-2xl grid-cols-1 gap-5 sm:grid-cols-2">
+        <button
+          onClick={() => navigate("/gestion/boutique")}
+          className="flex flex-col items-center gap-4 rounded-2xl bg-primary px-8 py-12 text-primary-foreground transition-opacity active:opacity-90"
+        >
+          <ShoppingBag strokeWidth={1.5} className="h-9 w-9" />
+          <div className="text-center">
+            <div className="text-lg font-semibold">Boutique</div>
+            <div className="mt-0.5 text-sm text-primary-foreground/70">
+              {boutique.length} article{boutique.length > 1 ? "s" : ""}
+            </div>
+          </div>
+        </button>
+
+        <button
+          onClick={() => navigate("/gestion/buvette")}
+          className="flex flex-col items-center gap-4 rounded-2xl border-2 border-primary bg-white px-8 py-12 text-primary transition-colors active:bg-usl-gray"
+        >
+          <CupSoda strokeWidth={1.5} className="h-9 w-9" />
+          <div className="text-center">
+            <div className="text-lg font-semibold">Buvette / Bar</div>
+            <div className="mt-0.5 text-sm text-primary/60">
+              {buvette.length} article{buvette.length > 1 ? "s" : ""}
+            </div>
+          </div>
+        </button>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Banknote, CreditCard, FileText, MoreHorizontal, CheckCircle2 } from "lucide-react";
+import { Banknote, CreditCard, FileText, MoreHorizontal, CheckCircle2, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -75,18 +75,22 @@ export function EncaissementDialog({
     setStep("compteur");
   }
 
+  function handleCancel() {
+    onOpenChange(false);
+  }
+
   function handleConfirmerPaye() {
     if (!moyen) return;
     onConfirmed(moyen, null);
   }
 
   return (
-    <Dialog open={open} onOpenChange={step === "moyen" ? onOpenChange : undefined}>
+    <Dialog open={open} onOpenChange={step === "compteur" ? undefined : onOpenChange}>
       <DialogContent
-        hideClose={step !== "moyen"}
+        hideClose={step === "compteur"}
         className="max-w-lg"
-        onPointerDownOutside={(e) => step !== "moyen" && e.preventDefault()}
-        onEscapeKeyDown={(e) => step !== "moyen" && e.preventDefault()}
+        onPointerDownOutside={(e) => step === "compteur" && e.preventDefault()}
+        onEscapeKeyDown={(e) => step === "compteur" && e.preventDefault()}
       >
         <DialogHeader>
           <DialogTitle>Encaissement — Commande n°{commande.numero}</DialogTitle>
@@ -121,6 +125,12 @@ export function EncaissementDialog({
             <Button size="xl" onClick={handleValider}>
               Valider le paiement
             </Button>
+            <button
+              onClick={handleCancel}
+              className="flex items-center gap-1.5 self-start text-sm font-semibold text-muted-foreground hover:text-destructive"
+            >
+              <X className="h-4 w-4" /> Annuler
+            </button>
           </div>
         )}
 

@@ -1,7 +1,7 @@
 {
   "name": "usl-stock",
   "private": true,
-  "version": "1.2.2",
+  "version": "1.4.1",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
@@ -24,7 +24,8 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "USL-Stock-Setup-${version}.${ext}"
     },
     "publish": {
       "provider": "github",
@@ -49,6 +50,7 @@
     "electron-updater": "^6.8.9",
     "firebase": "^12.17.1",
     "lucide-react": "^1.31.0",
+    "motion": "^13.4.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.2",

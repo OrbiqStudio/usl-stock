@@ -1,6 +1,5 @@
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface ScreenHeaderProps {
@@ -14,18 +13,17 @@ interface ScreenHeaderProps {
 export function ScreenHeader({ title, subtitle, onBack, right, className }: ScreenHeaderProps) {
   const navigate = useNavigate();
   return (
-    <div className={cn("flex items-center gap-4 border-b border-border bg-white px-6 py-4", className)}>
-      <Button
-        variant="secondary"
-        size="icon"
+    <div className={cn("flex items-center gap-4 bg-white px-6 py-5", className)}>
+      <button
         onClick={onBack ?? (() => navigate(-1))}
         aria-label="Retour"
+        className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full text-usl-gray-dark transition-colors hover:bg-usl-gray hover:text-primary"
       >
-        <ArrowLeft className="h-5 w-5" />
-      </Button>
-      <div className="flex-1 min-w-0">
-        <h1 className="text-2xl font-bold truncate">{title}</h1>
-        {subtitle && <p className="text-sm text-muted-foreground truncate">{subtitle}</p>}
+        <ArrowLeft strokeWidth={1.5} className="h-5 w-5" />
+      </button>
+      <div className="min-w-0 flex-1">
+        <h1 className="truncate text-xl font-bold tracking-tight">{title}</h1>
+        {subtitle && <p className="truncate text-sm text-muted-foreground">{subtitle}</p>}
       </div>
       {right}
     </div>

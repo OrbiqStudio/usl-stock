@@ -12,8 +12,11 @@ import type {
   MoyenPaiement,
   FondCaisse,
   PackArticle,
+  PackSlot,
+  PackSlotOption,
   Contenance,
 } from "@/types";
+import { CONSIGNE_ARTICLE_ID, CONSIGNE_NOM, CONSIGNE_PRIX, CONSIGNE_TVA } from "@/types";
 import { ttcToHt } from "@/lib/money";
 import { nextCommandeNumero as reserveNextCommandeNumero } from "@/lib/transactions";
 
@@ -88,6 +91,7 @@ export interface CreateArticleInput {
   stockEnBouteilles: boolean;
   bouteilles1L: number;
   bouteilles15L: number;
+  consigneAuto: boolean;
 }
 
 export function createArticle(input: CreateArticleInput): Article {
@@ -297,19 +301,62 @@ export function addArticleToCommande(
   recomputeAndSave(commande, lignes, commande.remise);
 }
 
-export function addPackToCommande(commandeId: string, pack: Pack) {
+export function addPackToCommande(commandeId: string, pack: Pack, choix?: PackSlotOption[]) {
   const commande = commandesCol.get(commandeId);
   if (!commande) return;
+  const prixUnitaire = pack.prixPack + (choix?.reduce((s, c) => s + c.prixDelta, 0) ?? 0);
+  const articleNom = choix?.length ? `${pack.nom} (${choix.map((c) => c.articleNom).join(" + ")})` : pack.nom;
   const lignes = [...commande.lignes];
   lignes.push({
     articleId: pack.id,
-    articleNom: pack.nom,
+    articleNom,
     quantite: 1,
-    prixUnitaire: pack.prixPack,
+    prixUnitaire,
     tauxTVA: pack.tauxTVA,
-    sousTotal: pack.prixPack,
+    sousTotal: prixUnitaire,
     packId: pack.id,
+    ...(choix?.length
+      ? { packChoix: choix.map(({ articleId, articleNom: nom }) => ({ articleId, articleNom: nom })) }
+      : {}),
   });
+  recomputeAndSave(commande, lignes, commande.remise);
+}
+
+// ---------- Consigne ----------
+
+export function addConsigne(commandeId: string, quantite = 1) {
+  const commande = commandesCol.get(commandeId);
+  if (!commande) return;
+  const lignes = [...commande.lignes];
+  const existing = lignes.find((l) => l.articleId === CONSIGNE_ARTICLE_ID);
+  if (existing) {
+    existing.quantite += quantite;
+    existing.sousTotal = existing.quantite * existing.prixUnitaire;
+  } else {
+    lignes.push({
+      articleId: CONSIGNE_ARTICLE_ID,
+      articleNom: CONSIGNE_NOM,
+      quantite,
+      prixUnitaire: CONSIGNE_PRIX,
+      tauxTVA: CONSIGNE_TVA,
+      sousTotal: CONSIGNE_PRIX * quantite,
+    });
+  }
+  recomputeAndSave(commande, lignes, commande.remise);
+}
+
+export function removeConsigne(commandeId: string, quantite = 1) {
+  const commande = commandesCol.get(commandeId);
+  if (!commande) return;
+  const lignes = [...commande.lignes];
+  const idx = lignes.findIndex((l) => l.articleId === CONSIGNE_ARTICLE_ID);
+  if (idx === -1) return;
+  const next = lignes[idx].quantite - quantite;
+  if (next <= 0) {
+    lignes.splice(idx, 1);
+  } else {
+    lignes[idx] = { ...lignes[idx], quantite: next, sousTotal: next * lignes[idx].prixUnitaire };
+  }
   recomputeAndSave(commande, lignes, commande.remise);
 }
 
@@ -352,10 +399,16 @@ export function payerCommande(
       : null;
 
   commande.lignes.forEach((ligne) => {
+    if (ligne.articleId === CONSIGNE_ARTICLE_ID) {
+      return; // La consigne n'est pas un article stocké.
+    }
     if (ligne.packId) {
       const pack = packsCol.get(ligne.packId);
       pack?.articles.forEach((pa: PackArticle) => {
         adjustStock(pa.articleId, -pa.quantite * ligne.quantite, `Vente pack ${pack.nom}`);
+      });
+      ligne.packChoix?.forEach((c) => {
+        adjustStock(c.articleId, -ligne.quantite, `Vente pack ${ligne.articleNom}`);
       });
     } else {
       adjustStock(ligne.articleId, -ligne.quantite, "Vente");
@@ -393,6 +446,7 @@ export interface CreatePackInput {
   nom: string;
   section: Section;
   articles: PackArticle[];
+  slots: PackSlot[];
   prixPack: number;
   tauxTVA: number;
   imageUrl: string | null;
