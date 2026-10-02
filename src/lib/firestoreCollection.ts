@@ -59,6 +59,10 @@ export class FirestoreCollection<T extends WithId> {
   }
 
   update(id: string, patch: Partial<T>) {
+    // Mise à jour optimiste du cache : deux modifications successives (clics rapides)
+    // partent ainsi toujours de l'état le plus récent au lieu d'écraser la précédente.
+    this.cache = this.cache.map((i) => (i.id === id ? { ...i, ...patch } : i));
+    this.emit();
     void updateDoc(doc(db, this.name, id), patch as DocumentData);
   }
 
