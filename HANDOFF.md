@@ -96,6 +96,6 @@ src/screens/         HomeScreen, direct/ (caisse), stock/ (gestion), admin/
 ## 11. Ce que la nouvelle IA doit faire en premier
 
 1. `git clone`, `npm install`, `npm run dev` et vérifier que ça démarre ; `npm run build` doit passer sans erreur TS.
-2. Demander à l'utilisateur : où sont `keystore.properties` / le `.jks` ? Quelle config Firebase est utilisée (la config est dans le code source `src/lib/firebase.ts` ou équivalent — la lire) ? A-t-il Git/Node/JDK/Android SDK installés sur ce PC ? Peut-on se connecter à `gh` avec le compte propriétaire du dépôt ?
+2. Demander à l'utilisateur : où sont `keystore.properties` / le `.jks` ? Quelle config Firebase est utilisée (la config est dans le code source `src/lib/firebase.ts`) ? A-t-il Git/Node/JDK/Android SDK installés sur ce PC ? Peut-on se connecter à `gh` avec le compte propriétaire du dépôt ?
 3. **Poser toutes les questions utiles** avant de modifier quoi que ce soit : quelles fonctions sont prioritaires, quels écrans restent à redessiner et avec quelle référence visuelle, règles de consigne/packs/remise exactes, fréquence des matchs, nombre de tablettes, besoin légal (TVA, certification), sauvegardes.
 4. Pour toute modif : build local, test, bump de version, release GitHub (.exe + .apk), et dire à l'utilisateur où récupérer les fichiers.
