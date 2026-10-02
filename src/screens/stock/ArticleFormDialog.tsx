@@ -56,7 +56,7 @@ export function ArticleFormDialog({
     "50cl": "",
   });
   const [stockEnBouteilles, setStockEnBouteilles] = useState(false);
-  const [consigneAuto, setConsigneAuto] = useState(false);
+  const [consigneAuto, setConsigneAuto] = useState(true);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
@@ -70,7 +70,7 @@ export function ArticleFormDialog({
       setFavori(article?.favori ?? false);
       setEstAlcool(article?.estAlcool ?? false);
       setStockEnBouteilles(article?.stockEnBouteilles ?? false);
-      setConsigneAuto(article?.consigneAuto ?? false);
+      setConsigneAuto(article?.consigneAuto ?? true);
       setContenancesPrix({
         "25cl": article?.contenances?.["25cl"] != null ? String(centsToEuros(article.contenances["25cl"])) : "",
         "33cl": article?.contenances?.["33cl"] != null ? String(centsToEuros(article.contenances["33cl"])) : "",

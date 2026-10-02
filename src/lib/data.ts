@@ -291,19 +291,24 @@ function shiftConsigne(lignes: LigneCommande[], delta: number) {
   else lignes[idx] = { ...lignes[idx], quantite: next, sousTotal: next * lignes[idx].prixUnitaire };
 }
 
+/** Une boisson est consignée si l'option est activée sur l'article, et toujours si c'est de l'alcool. */
+function avecConsigne(a?: Pick<Article, "consigneAuto" | "estAlcool"> | null): boolean {
+  return !!a && (a.consigneAuto || a.estAlcool);
+}
+
 /** Nombre de consignes générées par une ligne de commande (article avec consigne ou boissons d'un pack). */
 function consignesDeLigne(ligne: LigneCommande): number {
   if (ligne.articleId === CONSIGNE_ARTICLE_ID) return 0;
   if (!ligne.packId) {
-    return articlesCol.get(ligne.articleId)?.consigneAuto ? ligne.quantite : 0;
+    return avecConsigne(articlesCol.get(ligne.articleId)) ? ligne.quantite : 0;
   }
   const pack = packsCol.get(ligne.packId);
   const fixes = (pack?.articles ?? []).reduce(
-    (s, pa) => s + (articlesCol.get(pa.articleId)?.consigneAuto ? pa.quantite : 0),
+    (s, pa) => s + (avecConsigne(articlesCol.get(pa.articleId)) ? pa.quantite : 0),
     0
   );
   const choix = (ligne.packChoix ?? []).reduce(
-    (s, c) => s + (articlesCol.get(c.articleId)?.consigneAuto ? 1 : 0),
+    (s, c) => s + (avecConsigne(articlesCol.get(c.articleId)) ? 1 : 0),
     0
   );
   return (fixes + choix) * ligne.quantite;
@@ -338,7 +343,7 @@ export function addArticleToCommande(
       ...(contenance ? { contenance } : {}),
     });
   }
-  if (article.consigneAuto) shiftConsigne(lignes, quantite);
+  if (avecConsigne(article)) shiftConsigne(lignes, quantite);
   recomputeAndSave(commande, lignes, commande.remise);
 }
 
