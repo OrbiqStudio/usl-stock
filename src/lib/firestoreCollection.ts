@@ -8,6 +8,7 @@ import {
   increment,
   type DocumentData,
 } from "firebase/firestore";
+import { toast } from "sonner";
 import { db } from "@/lib/firebase";
 
 type Listener = () => void;
@@ -63,7 +64,16 @@ export class FirestoreCollection<T extends WithId> {
     // partent ainsi toujours de l'état le plus récent au lieu d'écraser la précédente.
     this.cache = this.cache.map((i) => (i.id === id ? { ...i, ...patch } : i));
     this.emit();
-    void updateDoc(doc(db, this.name, id), patch as DocumentData);
+    try {
+      updateDoc(doc(db, this.name, id), patch as DocumentData).catch((e) => this.reportError(e));
+    } catch (e) {
+      this.reportError(e);
+    }
+  }
+
+  private reportError(e: unknown) {
+    console.error(`[${this.name}] écriture refusée`, e);
+    toast.error(`Enregistrement impossible : ${e instanceof Error ? e.message : String(e)}`);
   }
 
   remove(id: string) {
