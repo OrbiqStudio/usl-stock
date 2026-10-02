@@ -124,6 +124,8 @@ export interface Commande {
   renduMonnaie: number | null;
   statut: StatutCommande;
   motifAnnulation: string | null;
+  /** Ajustement manuel de la consigne par les bénévoles (+ Consigne / − Déconsigne), en nombre de verres. */
+  consigneAjust?: number;
   tabletteId: string;
   createdAt: number;
   updatedAt: number;

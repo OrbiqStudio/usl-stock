@@ -4,7 +4,7 @@ import { IdleOverlay } from "@/screens/direct/components/IdleOverlay";
 
 const IDLE_TIMEOUT_MS = 60_000;
 
-/** Idle-mode video kicks in anywhere in the app after 1 min of inactivity, except in the admin space. */
+/** Idle screen (white + club logo) kicks in anywhere in the app after 1 min of inactivity, except in the admin space. */
 export function GlobalIdleOverlay() {
   const location = useLocation();
   const enabled = !location.pathname.startsWith("/admin");
