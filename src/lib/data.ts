@@ -276,59 +276,63 @@ export async function createCommande(
   return commande;
 }
 
-function recomputeAndSave(commande: Commande, lignes: LigneCommande[], remise: Remise | null) {
-  const totals = computeTotals(lignes, remise);
+/** Nombre de boissons consignées dans la commande (articles seuls + contenu des packs). */
+function countBoissons(lignes: LigneCommande[]): number {
+  const consignee = (articleId: string) => {
+    const a = articlesCol.get(articleId);
+    return !!a && (a.estAlcool || a.consigneAuto);
+  };
+  let total = 0;
+  lignes.forEach((l) => {
+    if (l.articleId === CONSIGNE_ARTICLE_ID) return;
+    if (l.packId) {
+      const pack = packsCol.get(l.packId);
+      pack?.articles.forEach((pa) => {
+        if (consignee(pa.articleId)) total += pa.quantite * l.quantite;
+      });
+      l.packChoix?.forEach((c) => {
+        if (consignee(c.articleId)) total += l.quantite;
+      });
+    } else if (consignee(l.articleId)) {
+      total += l.quantite;
+    }
+  });
+  return total;
+}
+
+/** La ligne consigne = 1 € par boisson + ajustement manuel (Consigne / Déconsigne). Peut être négative. */
+function withConsigne(lignes: LigneCommande[], ajust: number): LigneCommande[] {
+  const base = lignes.filter((l) => l.articleId !== CONSIGNE_ARTICLE_ID);
+  const quantite = countBoissons(base) + ajust;
+  if (quantite === 0) return base;
+  return [
+    ...base,
+    {
+      articleId: CONSIGNE_ARTICLE_ID,
+      articleNom: CONSIGNE_NOM,
+      quantite,
+      prixUnitaire: CONSIGNE_PRIX,
+      tauxTVA: CONSIGNE_TVA,
+      sousTotal: CONSIGNE_PRIX * quantite,
+    },
+  ];
+}
+
+function recomputeAndSave(
+  commande: Commande,
+  lignes: LigneCommande[],
+  remise: Remise | null,
+  ajust: number = commande.consigneAjust ?? 0
+) {
+  const finales = withConsigne(lignes, ajust);
+  const totals = computeTotals(finales, remise);
   commandesCol.update(commande.id, {
-    lignes,
+    lignes: finales,
     remise,
+    consigneAjust: ajust,
     ...totals,
     updatedAt: Date.now(),
   });
-}
-
-/** Ajoute (delta > 0) ou retire (delta < 0) des consignes directement dans le tableau de lignes. */
-function shiftConsigne(lignes: LigneCommande[], delta: number) {
-  if (delta === 0) return;
-  const idx = lignes.findIndex((l) => l.articleId === CONSIGNE_ARTICLE_ID);
-  if (idx === -1) {
-    if (delta > 0) {
-      lignes.push({
-        articleId: CONSIGNE_ARTICLE_ID,
-        articleNom: CONSIGNE_NOM,
-        quantite: delta,
-        prixUnitaire: CONSIGNE_PRIX,
-        tauxTVA: CONSIGNE_TVA,
-        sousTotal: CONSIGNE_PRIX * delta,
-      });
-    }
-    return;
-  }
-  const next = lignes[idx].quantite + delta;
-  if (next <= 0) lignes.splice(idx, 1);
-  else lignes[idx] = { ...lignes[idx], quantite: next, sousTotal: next * lignes[idx].prixUnitaire };
-}
-
-/** Une boisson est consignée si l'option est activée sur l'article, et toujours si c'est de l'alcool. */
-function avecConsigne(a?: Pick<Article, "consigneAuto" | "estAlcool"> | null): boolean {
-  return !!a && (a.consigneAuto || a.estAlcool);
-}
-
-/** Nombre de consignes générées par une ligne de commande (article avec consigne ou boissons d'un pack). */
-function consignesDeLigne(ligne: LigneCommande): number {
-  if (ligne.articleId === CONSIGNE_ARTICLE_ID) return 0;
-  if (!ligne.packId) {
-    return avecConsigne(articlesCol.get(ligne.articleId)) ? ligne.quantite : 0;
-  }
-  const pack = packsCol.get(ligne.packId);
-  const fixes = (pack?.articles ?? []).reduce(
-    (s, pa) => s + (avecConsigne(articlesCol.get(pa.articleId)) ? pa.quantite : 0),
-    0
-  );
-  const choix = (ligne.packChoix ?? []).reduce(
-    (s, c) => s + (avecConsigne(articlesCol.get(c.articleId)) ? 1 : 0),
-    0
-  );
-  return (fixes + choix) * ligne.quantite;
 }
 
 export function addArticleToCommande(
@@ -360,7 +364,6 @@ export function addArticleToCommande(
       ...(contenance ? { contenance } : {}),
     });
   }
-  if (avecConsigne(article)) shiftConsigne(lignes, quantite);
   recomputeAndSave(commande, lignes, commande.remise);
 }
 
@@ -382,7 +385,6 @@ export function addPackToCommande(commandeId: string, pack: Pack, choix?: PackSl
       ? { packChoix: choix.map(({ articleId, articleNom: nom }) => ({ articleId, articleNom: nom })) }
       : {}),
   });
-  shiftConsigne(lignes, consignesDeLigne(lignes[lignes.length - 1]));
   recomputeAndSave(commande, lignes, commande.remise);
 }
 
@@ -391,52 +393,29 @@ export function addPackToCommande(commandeId: string, pack: Pack, choix?: PackSl
 export function addConsigne(commandeId: string, quantite = 1) {
   const commande = commandesCol.get(commandeId);
   if (!commande) return;
-  const lignes = [...commande.lignes];
-  const existing = lignes.find((l) => l.articleId === CONSIGNE_ARTICLE_ID);
-  if (existing) {
-    existing.quantite += quantite;
-    existing.sousTotal = existing.quantite * existing.prixUnitaire;
-  } else {
-    lignes.push({
-      articleId: CONSIGNE_ARTICLE_ID,
-      articleNom: CONSIGNE_NOM,
-      quantite,
-      prixUnitaire: CONSIGNE_PRIX,
-      tauxTVA: CONSIGNE_TVA,
-      sousTotal: CONSIGNE_PRIX * quantite,
-    });
-  }
-  recomputeAndSave(commande, lignes, commande.remise);
+  recomputeAndSave(commande, commande.lignes, commande.remise, (commande.consigneAjust ?? 0) + quantite);
 }
 
+/** Déconsigne : rend 1 € par verre rapporté (peut dépasser le nombre de boissons de la commande). */
 export function removeConsigne(commandeId: string, quantite = 1) {
   const commande = commandesCol.get(commandeId);
   if (!commande) return;
-  const lignes = [...commande.lignes];
-  const idx = lignes.findIndex((l) => l.articleId === CONSIGNE_ARTICLE_ID);
-  if (idx === -1) return;
-  const next = lignes[idx].quantite - quantite;
-  if (next <= 0) {
-    lignes.splice(idx, 1);
-  } else {
-    lignes[idx] = { ...lignes[idx], quantite: next, sousTotal: next * lignes[idx].prixUnitaire };
-  }
-  recomputeAndSave(commande, lignes, commande.remise);
+  recomputeAndSave(commande, commande.lignes, commande.remise, (commande.consigneAjust ?? 0) - quantite);
 }
 
 export function updateLigneQuantite(commandeId: string, index: number, quantite: number) {
   const commande = commandesCol.get(commandeId);
   if (!commande) return;
   const lignes = [...commande.lignes];
-  const ancienne = lignes[index];
-  if (!ancienne) return;
-  const parUnite = consignesDeLigne(ancienne) / (ancienne.quantite || 1);
-  shiftConsigne(lignes, Math.round(parUnite * (Math.max(quantite, 0) - ancienne.quantite)));
-  const pos = lignes.indexOf(ancienne);
+  if (lignes[index]?.articleId === CONSIGNE_ARTICLE_ID) {
+    const boissons = countBoissons(lignes);
+    recomputeAndSave(commande, lignes, commande.remise, Math.max(quantite, 0) - boissons);
+    return;
+  }
   if (quantite <= 0) {
-    lignes.splice(pos, 1);
+    lignes.splice(index, 1);
   } else {
-    lignes[pos] = { ...ancienne, quantite, sousTotal: ancienne.prixUnitaire * quantite };
+    lignes[index] = { ...lignes[index], quantite, sousTotal: lignes[index].prixUnitaire * quantite };
   }
   recomputeAndSave(commande, lignes, commande.remise);
 }
@@ -444,9 +423,11 @@ export function updateLigneQuantite(commandeId: string, index: number, quantite:
 export function removeLigne(commandeId: string, index: number) {
   const commande = commandesCol.get(commandeId);
   if (!commande) return;
-  const retiree = commande.lignes[index];
+  if (commande.lignes[index]?.articleId === CONSIGNE_ARTICLE_ID) {
+    recomputeAndSave(commande, commande.lignes, commande.remise, -countBoissons(commande.lignes));
+    return;
+  }
   const lignes = commande.lignes.filter((_, i) => i !== index);
-  if (retiree) shiftConsigne(lignes, -consignesDeLigne(retiree));
   recomputeAndSave(commande, lignes, commande.remise);
 }
 
