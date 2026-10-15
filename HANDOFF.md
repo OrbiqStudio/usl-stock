@@ -25,6 +25,7 @@
 - Electron 41 + electron-builder (NSIS) + electron-updater ; `electron/main.cjs` + `electron/preload.cjs` (pont IPC → `window.electronAPI`).
 - Capacitor 8 Android (`android/`), appId `fr.agtcweb.uslstock` (les tirets sont interdits dans un appId Capacitor). `MainActivity.java` met l'app en plein écran immersif.
 - Outils locaux : Gradle 8.14, **JDK 21** (aussi 17), Android SDK en `C:\Android\sdk` (`android/local.properties` : `sdk.dir` avec slashs `/`). JAVA_HOME court utilisé : `C:\PROGRA~1\ECLIPS~1\JDK-21~1.8-H`.
+- **Dossiers de sortie (v1.4.5+)** : le site web compilé va dans `dist/` (lu par Capacitor pour l'APK) ; l'installeur Windows (`.exe`, `.blockmap`, `latest.yml`) va dans **`release/`**. Avant, tout était dans `dist/` et l'APK embarquait l'.exe (APK ≈ 500 Mo). Ne jamais remettre l'output d'electron-builder dans `dist/`.
 - Commandes : `npm install`, `npm run dev`, `npm run build` (tsc -b + vite build), `npm run electron:build` (.exe), puis `npx cap sync android` + `gradlew assembleRelease` dans `android/` (APK).
 - TypeScript strict avec `noUnusedLocals` : un import inutilisé fait échouer le build.
 
