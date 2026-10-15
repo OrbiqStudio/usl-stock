@@ -35,7 +35,7 @@ import { EncaissementDialog } from "@/screens/direct/components/EncaissementDial
 import { LowStockPopup } from "@/screens/direct/components/LowStockPopup";
 import { ContenanceDialog } from "@/screens/direct/components/ContenanceDialog";
 import { PackSlotDialog } from "@/screens/direct/components/PackSlotDialog";
-import type { Article, Contenance, MoyenPaiement, Pack, PackSlotOption, Section } from "@/types";
+import { unitesStock, type Article, type Contenance, type MoyenPaiement, type Pack, type PackSlotOption, type Section } from "@/types";
 import { toast } from "sonner";
 
 export default function CaisseScreen() {
@@ -117,6 +117,15 @@ export default function CaisseScreen() {
     return map;
   }, [commande]);
 
+  // Stock consommé par la commande en cours (un 50cl compte pour 2 verres de 25cl).
+  const stockUtilise = useMemo(() => {
+    const map: Record<string, number> = {};
+    commande?.lignes.forEach((l) => {
+      if (!l.packId) map[l.articleId] = (map[l.articleId] ?? 0) + l.quantite * unitesStock(l.contenance);
+    });
+    return map;
+  }, [commande]);
+
   const displayedArticles = useMemo(() => {
     if (category === "favoris") return favoris;
     if (category === "packs") return [];
@@ -139,7 +148,7 @@ export default function CaisseScreen() {
 
   function handleSelectArticle(a: Article) {
     if (!commande) return;
-    const already = quantities[a.id] ?? 0;
+    const already = stockUtilise[a.id] ?? 0;
     if (already >= a.stock) {
       toast.error(`Stock insuffisant pour "${a.nom}"`);
       return;
@@ -153,6 +162,10 @@ export default function CaisseScreen() {
 
   function handleChooseContenance(contenance: Contenance) {
     if (!commande || !alcoolArticle) return;
+    if ((stockUtilise[alcoolArticle.id] ?? 0) + unitesStock(contenance) > alcoolArticle.stock) {
+      toast.error(`Stock insuffisant pour "${alcoolArticle.nom}" en ${contenance}`);
+      return;
+    }
     addArticleToCommande(commande.id, alcoolArticle, 1, contenance);
     setAlcoolArticle(null);
   }
@@ -169,7 +182,7 @@ export default function CaisseScreen() {
     const ligne = commande.lignes[i];
     if (!ligne.packId) {
       const article = allArticles.find((a) => a.id === ligne.articleId);
-      if (article && ligne.quantite >= article.stock) {
+      if (article && (stockUtilise[article.id] ?? 0) + unitesStock(ligne.contenance) > article.stock) {
         toast.error(`Stock insuffisant pour "${ligne.articleNom}"`);
         return;
       }
@@ -239,6 +252,8 @@ export default function CaisseScreen() {
           onNouvelle={handleNouvelle}
           onEncaisser={handleOpenEncaissement}
           onAnnuler={() => setAnnulerOpen(true)}
+          onAddConsigne={() => commande && addConsigne(commande.id, 1)}
+          onRemoveConsigne={() => commande && removeConsigne(commande.id, 1)}
           onHome={() => navigate("/")}
         />
 
@@ -272,8 +287,6 @@ export default function CaisseScreen() {
           onRemove={(i) => commande && removeLigne(commande.id, i)}
           onOpenRemise={() => setRemiseOpen(true)}
           onQuickPay={handleQuickPay}
-          onAddConsigne={() => commande && addConsigne(commande.id, 1)}
-          onRemoveConsigne={() => commande && removeConsigne(commande.id, 1)}
         />
       </div>
 

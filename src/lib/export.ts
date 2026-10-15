@@ -133,19 +133,30 @@ export function generateExcelExport(filter: ExportFilter) {
       ? matchs.filter((m) => m.id === filter.matchId)
       : matchs.filter((m) => m.statut === "termine" || m.statut === "en_cours");
 
-  const caisseRows: Row[] = matchsForCaisse.map((m) => {
-    const especes = commandes
-      .filter((c) => c.matchId === m.id && c.statut === "payee" && c.moyenPaiement === "especes")
-      .reduce((s, c) => s + c.totalTTC, 0);
-    const ecart = m.totalFondFinal != null ? m.totalFondFinal - ((m.totalFondInitial ?? 0) + especes) : null;
-    return {
-      Match: m.nom,
-      "Fond initial (€)": m.totalFondInitial != null ? centsToEuros(m.totalFondInitial) : "",
-      "Fond final (€)": m.totalFondFinal != null ? centsToEuros(m.totalFondFinal) : "",
-      "Recettes espèces (€)": centsToEuros(especes),
-      "Écart (€)": ecart != null ? centsToEuros(ecart) : "",
-    };
-  });
+  const caisseRows: Row[] = matchsForCaisse.flatMap((m) =>
+    (["buvette", "boutique"] as const).map((section) => {
+      const especes = commandes
+        .filter(
+          (c) =>
+            c.matchId === m.id &&
+            c.section === section &&
+            c.statut === "payee" &&
+            c.moyenPaiement === "especes"
+        )
+        .reduce((s, c) => s + c.totalTTC, 0);
+      const initial = section === "buvette" ? m.totalFondInitial : m.totalFondBoutiqueInitial;
+      const final = section === "buvette" ? m.totalFondFinal : m.totalFondBoutiqueFinal;
+      const ecart = final != null ? final - ((initial ?? 0) + especes) : null;
+      return {
+        Match: m.nom,
+        Caisse: section === "buvette" ? "Buvette" : "Boutique",
+        "Fond initial (€)": initial != null ? centsToEuros(initial) : "",
+        "Fond final (€)": final != null ? centsToEuros(final) : "",
+        "Recettes espèces (€)": centsToEuros(especes),
+        "Écart (€)": ecart != null ? centsToEuros(ecart) : "",
+      };
+    })
+  );
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(caisseRows), "Fond de caisse");
 
   const filename = `USL-Stock-Export-${new Date().toISOString().slice(0, 10)}.xlsx`;

@@ -22,6 +22,13 @@ export type Contenance = "25cl" | "33cl" | "50cl";
 
 export const CONTENANCES: Contenance[] = ["25cl", "33cl", "50cl"];
 
+/** Unités de stock consommées par une contenance : 25cl = 1 (un verre), 50cl = 2. */
+export const CONTENANCE_UNITES: Record<Contenance, number> = { "25cl": 1, "33cl": 1, "50cl": 2 };
+
+export function unitesStock(contenance?: Contenance): number {
+  return contenance ? CONTENANCE_UNITES[contenance] : 1;
+}
+
 export interface Article {
   id: string;
   dossierId: string;
@@ -83,6 +90,11 @@ export interface Match {
   fondCaisseFinal: FondCaisse | null;
   totalFondInitial: number | null;
   totalFondFinal: number | null;
+  /** Fond de caisse de la boutique (les champs fondCaisse et totalFond ci-dessus = buvette). */
+  fondCaisseBoutiqueInitial?: FondCaisse | null;
+  fondCaisseBoutiqueFinal?: FondCaisse | null;
+  totalFondBoutiqueInitial?: number | null;
+  totalFondBoutiqueFinal?: number | null;
   compteurCommande: number;
   createdAt: number;
   updatedAt: number;

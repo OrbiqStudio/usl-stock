@@ -51,7 +51,6 @@ export function FondCaisseDialog({
       fond[c] = parseInt(quantities[c] || "0", 10) || 0;
     });
     onSubmit(fond, total);
-    onOpenChange(false);
   }
 
   return (

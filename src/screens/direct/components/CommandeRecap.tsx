@@ -8,8 +8,6 @@ import {
   CreditCard,
   FileText,
   MoreHorizontal,
-  PackageCheck,
-  PackageMinus,
 } from "lucide-react";
 import type { Commande, MoyenPaiement } from "@/types";
 import { formatEuros } from "@/lib/money";
@@ -28,8 +26,6 @@ export function CommandeRecap({
   onRemove,
   onOpenRemise,
   onQuickPay,
-  onAddConsigne,
-  onRemoveConsigne,
 }: {
   commande?: Commande;
   onIncrement: (index: number) => void;
@@ -37,8 +33,6 @@ export function CommandeRecap({
   onRemove: (index: number) => void;
   onOpenRemise: () => void;
   onQuickPay: (moyen: MoyenPaiement) => void;
-  onAddConsigne: () => void;
-  onRemoveConsigne: () => void;
 }) {
   if (!commande) {
     return (
@@ -109,18 +103,6 @@ export function CommandeRecap({
           >
             <Tag className="h-4 w-4" />
             {commande.remise ? "Modifier la remise" : "Ajouter une remise"}
-          </button>
-          <button
-            onClick={onAddConsigne}
-            className="flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
-          >
-            <PackageCheck className="h-4 w-4" /> Consigne
-          </button>
-          <button
-            onClick={onRemoveConsigne}
-            className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-destructive hover:underline"
-          >
-            <PackageMinus className="h-4 w-4" /> Déconsigne
           </button>
         </div>
 

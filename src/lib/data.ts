@@ -16,6 +16,7 @@ import type {
   PackSlotOption,
   Contenance,
 } from "@/types";
+import { unitesStock } from "@/types";
 import { CONSIGNE_ARTICLE_ID, CONSIGNE_NOM, CONSIGNE_PRIX, CONSIGNE_TVA } from "@/types";
 import { ttcToHt } from "@/lib/money";
 import { nextCommandeNumero as reserveNextCommandeNumero } from "@/lib/transactions";
@@ -160,7 +161,13 @@ export function deleteMatch(id: string) {
   matchsCol.remove(id);
 }
 
-export function startMatch(id: string, fondCaisseInitial: FondCaisse, total: number) {
+export function startMatch(
+  id: string,
+  fondCaisseInitial: FondCaisse,
+  total: number,
+  fondBoutique: FondCaisse,
+  totalBoutique: number
+) {
   if (getActiveMatch()) {
     throw new Error("Un match est déjà en cours. Terminez-le avant d'en démarrer un autre.");
   }
@@ -168,16 +175,26 @@ export function startMatch(id: string, fondCaisseInitial: FondCaisse, total: num
     statut: "en_cours",
     fondCaisseInitial,
     totalFondInitial: total,
+    fondCaisseBoutiqueInitial: fondBoutique,
+    totalFondBoutiqueInitial: totalBoutique,
     compteurCommande: 0,
     updatedAt: Date.now(),
   });
 }
 
-export function endMatch(id: string, fondCaisseFinal: FondCaisse, total: number) {
+export function endMatch(
+  id: string,
+  fondCaisseFinal: FondCaisse,
+  total: number,
+  fondBoutique: FondCaisse,
+  totalBoutique: number
+) {
   matchsCol.update(id, {
     statut: "termine",
     fondCaisseFinal,
     totalFondFinal: total,
+    fondCaisseBoutiqueFinal: fondBoutique,
+    totalFondBoutiqueFinal: totalBoutique,
     updatedAt: Date.now(),
   });
 }
@@ -465,7 +482,7 @@ export function payerCommande(
         adjustStock(c.articleId, -ligne.quantite, `Vente pack ${ligne.articleNom}`);
       });
     } else {
-      adjustStock(ligne.articleId, -ligne.quantite, "Vente");
+      adjustStock(ligne.articleId, -ligne.quantite * unitesStock(ligne.contenance), "Vente");
     }
   });
 

@@ -18,7 +18,7 @@ import { commandesCol } from "@/lib/collections";
 import { deleteMatch, endMatch, startMatch } from "@/lib/data";
 import { MatchFormDialog } from "@/screens/admin/MatchFormDialog";
 import { FondCaisseDialog } from "@/screens/admin/FondCaisseDialog";
-import { TYPE_MATCH_LABELS, type FondCaisse, type Match } from "@/types";
+import { TYPE_MATCH_LABELS, type FondCaisse, type Match, type Section } from "@/types";
 import { formatEuros } from "@/lib/money";
 import { toast } from "sonner";
 
@@ -39,29 +39,49 @@ export function AdminMatchsTab() {
   const [endTarget, setEndTarget] = useState<Match | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Match | null>(null);
 
+  // Les fonds de caisse se comptent en deux temps : buvette puis boutique.
+  const [fondBuvette, setFondBuvette] = useState<{ fond: FondCaisse; total: number } | null>(null);
+
   function handleStart(fond: FondCaisse, total: number) {
     if (!startTarget) return;
+    if (!fondBuvette) {
+      setFondBuvette({ fond, total });
+      return;
+    }
     try {
-      startMatch(startTarget.id, fond, total);
+      startMatch(startTarget.id, fondBuvette.fond, fondBuvette.total, fond, total);
       toast.success(`Match "${startTarget.nom}" démarré`);
     } catch (e) {
       toast.error((e as Error).message);
     }
+    setFondBuvette(null);
     setStartTarget(null);
   }
 
   function handleEnd(fond: FondCaisse, total: number) {
     if (!endTarget) return;
-    endMatch(endTarget.id, fond, total);
+    if (!fondBuvette) {
+      setFondBuvette({ fond, total });
+      return;
+    }
+    endMatch(endTarget.id, fondBuvette.fond, fondBuvette.total, fond, total);
+    setFondBuvette(null);
     toast.success(`Match "${endTarget.nom}" terminé`);
     setEndTarget(null);
   }
 
-  function expectedTotalForEnd(match: Match) {
+  function expectedTotalForEnd(match: Match, section: Section) {
     const especesEncaissees = commandes
-      .filter((c) => c.matchId === match.id && c.statut === "payee" && c.moyenPaiement === "especes")
+      .filter(
+        (c) =>
+          c.matchId === match.id &&
+          c.section === section &&
+          c.statut === "payee" &&
+          c.moyenPaiement === "especes"
+      )
       .reduce((s, c) => s + c.totalTTC, 0);
-    return (match.totalFondInitial ?? 0) + especesEncaissees;
+    const initial = section === "buvette" ? match.totalFondInitial : match.totalFondBoutiqueInitial;
+    return (initial ?? 0) + especesEncaissees;
   }
 
   return (
@@ -93,7 +113,13 @@ export function AdminMatchsTab() {
                 <div className="text-sm text-muted-foreground">
                   {new Date(m.date).toLocaleDateString("fr-FR")} · {TYPE_MATCH_LABELS[m.type]}
                   {m.statut === "termine" && m.totalFondFinal != null && (
-                    <> · Caisse finale : {formatEuros(m.totalFondFinal)}</>
+                    <>
+                      {" "}
+                      · Caisse buvette : {formatEuros(m.totalFondFinal)}
+                      {m.totalFondBoutiqueFinal != null && (
+                        <> · Caisse boutique : {formatEuros(m.totalFondBoutiqueFinal)}</>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
@@ -128,10 +154,16 @@ export function AdminMatchsTab() {
 
       {startTarget && (
         <FondCaisseDialog
+          key={fondBuvette ? "boutique" : "buvette"}
           open={!!startTarget}
-          onOpenChange={(o) => !o && setStartTarget(null)}
-          title={`Fond de caisse initial — ${startTarget.nom}`}
-          description="Comptez le fond de caisse de départ avant d'ouvrir la buvette/boutique."
+          onOpenChange={(o) => {
+            if (!o) {
+              setStartTarget(null);
+              setFondBuvette(null);
+            }
+          }}
+          title={`Fond de caisse initial ${fondBuvette ? "boutique" : "buvette"} — ${startTarget.nom}`}
+          description={`Étape ${fondBuvette ? 2 : 1}/2 — comptez le fond de caisse de départ de la ${fondBuvette ? "boutique" : "buvette"}.`}
           coupuresActives={config.coupuresActives}
           onSubmit={handleStart}
         />
@@ -139,12 +171,18 @@ export function AdminMatchsTab() {
 
       {endTarget && (
         <FondCaisseDialog
+          key={fondBuvette ? "boutique" : "buvette"}
           open={!!endTarget}
-          onOpenChange={(o) => !o && setEndTarget(null)}
-          title={`Recomptage de fin — ${endTarget.nom}`}
-          description="Recomptez la caisse à la fin du match."
+          onOpenChange={(o) => {
+            if (!o) {
+              setEndTarget(null);
+              setFondBuvette(null);
+            }
+          }}
+          title={`Recomptage de fin ${fondBuvette ? "boutique" : "buvette"} — ${endTarget.nom}`}
+          description={`Étape ${fondBuvette ? 2 : 1}/2 — recomptez la caisse de la ${fondBuvette ? "boutique" : "buvette"}.`}
           coupuresActives={config.coupuresActives}
-          expectedTotal={expectedTotalForEnd(endTarget)}
+          expectedTotal={expectedTotalForEnd(endTarget, fondBuvette ? "boutique" : "buvette")}
           onSubmit={handleEnd}
         />
       )}

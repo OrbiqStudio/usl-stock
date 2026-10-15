@@ -175,15 +175,27 @@ export function AdminDashboard() {
               </span>
               <div className="mt-1 flex flex-col gap-2 border-t border-border pt-3 text-sm">
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Fond initial</span>
+                  <span className="text-muted-foreground">Fond initial buvette</span>
                   <span className="font-semibold">
                     {selectedMatch.totalFondInitial != null ? formatEuros(selectedMatch.totalFondInitial) : "—"}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Fond final</span>
+                  <span className="text-muted-foreground">Fond final buvette</span>
                   <span className="font-semibold">
                     {selectedMatch.totalFondFinal != null ? formatEuros(selectedMatch.totalFondFinal) : "—"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Fond initial boutique</span>
+                  <span className="font-semibold">
+                    {selectedMatch.totalFondBoutiqueInitial != null ? formatEuros(selectedMatch.totalFondBoutiqueInitial) : "—"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Fond final boutique</span>
+                  <span className="font-semibold">
+                    {selectedMatch.totalFondBoutiqueFinal != null ? formatEuros(selectedMatch.totalFondBoutiqueFinal) : "—"}
                   </span>
                 </div>
               </div>

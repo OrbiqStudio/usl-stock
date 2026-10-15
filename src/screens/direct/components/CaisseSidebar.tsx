@@ -1,4 +1,4 @@
-import { ShoppingCart, Wallet, XCircle, Home } from "lucide-react";
+import { ShoppingCart, Wallet, XCircle, Home, PackageCheck, PackageMinus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Commande, Match } from "@/types";
 import { TYPE_MATCH_LABELS } from "@/types";
@@ -9,6 +9,8 @@ export function CaisseSidebar({
   onNouvelle,
   onEncaisser,
   onAnnuler,
+  onAddConsigne,
+  onRemoveConsigne,
   onHome,
 }: {
   match: Match;
@@ -16,6 +18,8 @@ export function CaisseSidebar({
   onNouvelle: () => void;
   onEncaisser: () => void;
   onAnnuler: () => void;
+  onAddConsigne: () => void;
+  onRemoveConsigne: () => void;
   onHome: () => void;
 }) {
   return (
@@ -55,6 +59,24 @@ export function CaisseSidebar({
           disabled={!commande || commande.lignes.length === 0}
         >
           <XCircle className="h-5 w-5" /> Annuler commande
+        </Button>
+        <Button
+          onClick={onAddConsigne}
+          variant="outline"
+          className="justify-start"
+          size="lg"
+          disabled={!commande}
+        >
+          <PackageCheck className="h-5 w-5" /> Consigne
+        </Button>
+        <Button
+          onClick={onRemoveConsigne}
+          variant="outline"
+          className="justify-start"
+          size="lg"
+          disabled={!commande}
+        >
+          <PackageMinus className="h-5 w-5" /> Déconsigne
         </Button>
       </div>
 
