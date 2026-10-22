@@ -123,6 +123,37 @@ export function adjustStock(articleId: string, delta: number, motif: string) {
   });
 }
 
+/**
+ * Remet le stock de tous les articles d'une section à `quantite` (en verres / unités).
+ * Les articles gérés en bouteilles reçoivent une répartition 1 L / 1,5 L équivalente
+ * (4 et 6 verres) pour rester cohérents avec l'écran de saisie ; retourne le nombre d'articles modifiés.
+ */
+export function setStockSection(section: Section, quantite: number): number {
+  const articles = articlesCol.getAll().filter((a) => a.section === section);
+  articles.forEach((a) => {
+    const delta = quantite - a.stock;
+    if (a.stockEnBouteilles) {
+      const b15 = Math.floor(quantite / 6);
+      const reste = quantite - b15 * 6;
+      const b1 = Math.floor(reste / 4);
+      const verres = b1 * 4 + b15 * 6;
+      articlesCol.update(a.id, { stock: verres, bouteilles1L: b1, bouteilles15L: b15, updatedAt: Date.now() });
+    } else {
+      articlesCol.update(a.id, { stock: quantite, updatedAt: Date.now() });
+    }
+    if (delta !== 0) {
+      mouvementsCol.add({
+        id: crypto.randomUUID(),
+        articleId: a.id,
+        delta,
+        motif: `Remise du stock à ${quantite}`,
+        createdAt: Date.now(),
+      });
+    }
+  });
+  return articles.length;
+}
+
 // ---------- Matchs ----------
 
 export function listMatchs(): Match[] {

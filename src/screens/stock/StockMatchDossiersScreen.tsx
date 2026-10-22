@@ -1,5 +1,18 @@
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { FolderOpen } from "lucide-react";
+import { FolderOpen, RotateCcw } from "lucide-react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { setStockSection } from "@/lib/data";
 import { ScreenHeader } from "@/components/ScreenHeader";
 import { DossierIcon } from "@/components/DossierIcon";
 import { AnimatedFolder } from "@/components/ui/animated-folder";
@@ -13,6 +26,19 @@ export default function StockMatchDossiersScreen() {
   const activeMatch = useActiveMatch();
   const dossiers = useDossiers(sec);
   const articles = useArticlesBySection(sec);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetValue, setResetValue] = useState("10");
+
+  function handleReset() {
+    const n = parseInt(resetValue, 10);
+    if (isNaN(n) || n < 0) {
+      toast.error("Quantité invalide");
+      return;
+    }
+    const count = setStockSection(sec, n);
+    toast.success(`Stock de ${count} article${count > 1 ? "s" : ""} remis à ${n}`);
+    setResetOpen(false);
+  }
 
   if (!activeMatch) {
     return (
@@ -31,6 +57,11 @@ export default function StockMatchDossiersScreen() {
         title={`Stock — ${activeMatch.nom}`}
         subtitle={sec === "boutique" ? "Boutique" : "Buvette / Bar"}
         onBack={() => navigate(`/gestion/${sec}`)}
+        right={
+          <Button variant="outline" className="rounded-full" onClick={() => setResetOpen(true)}>
+            <RotateCcw className="h-4 w-4" /> Remettre tout le stock à…
+          </Button>
+        }
       />
 
       <div className="flex-1 overflow-y-auto px-6 pb-6 pt-2">
@@ -71,6 +102,33 @@ export default function StockMatchDossiersScreen() {
           </div>
         )}
       </div>
+
+      <Dialog open={resetOpen} onOpenChange={setResetOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Remettre tout le stock à une même quantité</DialogTitle>
+            <DialogDescription>
+              Tous les articles {sec === "boutique" ? "de la boutique" : "de la buvette"} ({articles.length}) passeront à
+              cette quantité. Pour les boissons à contenances, c'est en verres de 25 cl.
+            </DialogDescription>
+          </DialogHeader>
+          <Input
+            type="number"
+            inputMode="numeric"
+            min={0}
+            value={resetValue}
+            onChange={(e) => setResetValue(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleReset()}
+            className="text-center text-lg"
+          />
+          <DialogFooter>
+            <Button variant="secondary" onClick={() => setResetOpen(false)}>
+              Annuler
+            </Button>
+            <Button onClick={handleReset}>Appliquer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
