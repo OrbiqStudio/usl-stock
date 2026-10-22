@@ -8,6 +8,7 @@ export function CaisseSidebar({
   commande,
   onNouvelle,
   onEncaisser,
+  remboursementSeul = false,
   onAnnuler,
   onAddConsigne,
   onRemoveConsigne,
@@ -17,6 +18,7 @@ export function CaisseSidebar({
   commande?: Commande;
   onNouvelle: () => void;
   onEncaisser: () => void;
+  remboursementSeul?: boolean;
   onAnnuler: () => void;
   onAddConsigne: () => void;
   onRemoveConsigne: () => void;
@@ -49,7 +51,7 @@ export function CaisseSidebar({
           size="lg"
           disabled={!commande || commande.lignes.length === 0}
         >
-          <Wallet className="h-5 w-5" /> Encaisser
+          <Wallet className="h-5 w-5" /> {remboursementSeul ? "Consigne rendue" : "Encaisser"}
         </Button>
         <Button
           onClick={onAnnuler}

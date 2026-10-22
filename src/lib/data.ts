@@ -468,6 +468,29 @@ export function setRemise(commandeId: string, remise: Remise | null) {
   recomputeAndSave(commande, commande.lignes, remise);
 }
 
+/** Commande ne contenant que des consignes rendues (rien à encaisser, de l'argent à rendre). */
+export function isRemboursementConsigne(commande: Commande): boolean {
+  return (
+    commande.lignes.length > 0 &&
+    commande.lignes.every((l) => l.articleId === CONSIGNE_ARTICLE_ID) &&
+    commande.totalTTC < 0
+  );
+}
+
+/** Consignes encaissées / rendues d'une commande payée (anciennes commandes : déduit de la ligne consigne). */
+export function consigneStats(commande: Commande): { facturee: number; rendue: number } {
+  if (commande.consigneFacturee != null || commande.consigneRendue != null) {
+    return { facturee: commande.consigneFacturee ?? 0, rendue: commande.consigneRendue ?? 0 };
+  }
+  const q = commande.lignes.find((l) => l.articleId === CONSIGNE_ARTICLE_ID)?.quantite ?? 0;
+  return { facturee: Math.max(q, 0), rendue: Math.max(-q, 0) };
+}
+
+/** Rend la consigne en espèces : la commande ne contient que des déconsignes, aucun moyen de paiement à choisir. */
+export function rendreConsigne(commandeId: string) {
+  payerCommande(commandeId, "especes", null);
+}
+
 export function payerCommande(
   commandeId: string,
   moyenPaiement: MoyenPaiement,
@@ -498,11 +521,16 @@ export function payerCommande(
     }
   });
 
+  const ajust = commande.consigneAjust ?? 0;
+  const boissons = countBoissons(commande.lignes);
+
   commandesCol.update(commandeId, {
     statut: "payee",
     moyenPaiement,
     montantRecu,
     renduMonnaie,
+    consigneFacturee: boissons + Math.max(ajust, 0),
+    consigneRendue: Math.max(-ajust, 0),
     updatedAt: Date.now(),
   });
 }

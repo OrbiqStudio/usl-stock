@@ -4,6 +4,8 @@ import { useCollection } from "@/hooks/useCollection";
 import { articlesCol, commandesCol } from "@/lib/collections";
 import { useMatchs } from "@/hooks/useData";
 import { formatEuros } from "@/lib/money";
+import { consigneStats, isRemboursementConsigne } from "@/lib/data";
+import { CONSIGNE_PRIX } from "@/types";
 import { generateExcelExport } from "@/lib/export";
 import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
@@ -112,7 +114,26 @@ export function AdminDashboard() {
       if (c.moyenPaiement) parMoyen[c.moyenPaiement] += c.totalTTC;
     });
 
-    return { nbArticles, nbAlerte, valeurAchat, valeurVente, ca, marge, nbCommandes: payees.length, parMoyen };
+    let consignesFacturees = 0;
+    let consignesRendues = 0;
+    payees.forEach((c) => {
+      const cs = consigneStats(c);
+      consignesFacturees += cs.facturee;
+      consignesRendues += cs.rendue;
+    });
+
+    return {
+      nbArticles,
+      nbAlerte,
+      valeurAchat,
+      valeurVente,
+      ca,
+      marge,
+      nbCommandes: payees.filter((c) => !isRemboursementConsigne(c)).length,
+      parMoyen,
+      consignesFacturees,
+      consignesRendues,
+    };
   }, [articles, commandes]);
 
   function handleExport() {
@@ -146,6 +167,23 @@ export function AdminDashboard() {
         <StatCard label="Marge estimée" value={formatEuros(stats.marge)} />
         <StatCard label="Commandes payées" value={String(stats.nbCommandes)} />
         <StatCard label="Articles en alerte" value={String(stats.nbAlerte)} />
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard
+          label="Consignes encaissées"
+          value={`${stats.consignesFacturees} · ${formatEuros(stats.consignesFacturees * CONSIGNE_PRIX)}`}
+        />
+        <StatCard
+          label="Consignes rendues"
+          value={`${stats.consignesRendues} · ${formatEuros(stats.consignesRendues * CONSIGNE_PRIX)}`}
+        />
+        <StatCard
+          label="Consignes en circulation (solde)"
+          value={`${stats.consignesFacturees - stats.consignesRendues} · ${formatEuros(
+            (stats.consignesFacturees - stats.consignesRendues) * CONSIGNE_PRIX
+          )}`}
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.4fr_1fr]">

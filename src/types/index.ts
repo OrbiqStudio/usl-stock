@@ -138,6 +138,10 @@ export interface Commande {
   motifAnnulation: string | null;
   /** Ajustement manuel de la consigne par les bénévoles (+ Consigne / − Déconsigne), en nombre de verres. */
   consigneAjust?: number;
+  /** Nombre de consignes encaissées (1 par boisson + « Consigne » manuelle), figé au paiement. */
+  consigneFacturee?: number;
+  /** Nombre de consignes rendues (bouton « Déconsigne »), figé au paiement. */
+  consigneRendue?: number;
   tabletteId: string;
   createdAt: number;
   updatedAt: number;

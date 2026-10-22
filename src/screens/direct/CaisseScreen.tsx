@@ -15,6 +15,8 @@ import {
   addArticleToCommande,
   addPackToCommande,
   addConsigne,
+  isRemboursementConsigne,
+  rendreConsigne,
   removeConsigne,
   annulerCommande,
   createCommande,
@@ -33,6 +35,7 @@ import { RemiseDialog } from "@/screens/direct/components/RemiseDialog";
 import { AnnulerDialog } from "@/screens/direct/components/AnnulerDialog";
 import { EncaissementDialog } from "@/screens/direct/components/EncaissementDialog";
 import { playAlertSound } from "@/lib/sound";
+import { formatEuros } from "@/lib/money";
 import { LowStockPopup } from "@/screens/direct/components/LowStockPopup";
 import { ContenanceDialog } from "@/screens/direct/components/ContenanceDialog";
 import { PackSlotDialog } from "@/screens/direct/components/PackSlotDialog";
@@ -216,7 +219,21 @@ export default function CaisseScreen() {
     startNewCommande();
   }
 
+  const remboursementSeul = !!commande && isRemboursementConsigne(commande);
+
+  function handleRendreConsigne() {
+    if (!commande) return;
+    const montant = -commande.totalTTC;
+    rendreConsigne(commande.id);
+    toast.success(`Consigne rendue : rendez ${formatEuros(montant)} en espèces`);
+    startNewCommande();
+  }
+
   function handleOpenEncaissement() {
+    if (remboursementSeul) {
+      handleRendreConsigne();
+      return;
+    }
     setQuickMoyen(null);
     setEncaissementOpen(true);
   }
@@ -255,6 +272,7 @@ export default function CaisseScreen() {
           commande={commande}
           onNouvelle={handleNouvelle}
           onEncaisser={handleOpenEncaissement}
+          remboursementSeul={remboursementSeul}
           onAnnuler={() => setAnnulerOpen(true)}
           onAddConsigne={() => commande && addConsigne(commande.id, 1)}
           onRemoveConsigne={() => commande && removeConsigne(commande.id, 1)}
@@ -291,6 +309,8 @@ export default function CaisseScreen() {
           onRemove={(i) => commande && removeLigne(commande.id, i)}
           onOpenRemise={() => setRemiseOpen(true)}
           onQuickPay={handleQuickPay}
+          remboursementSeul={remboursementSeul}
+          onRendreConsigne={handleRendreConsigne}
         />
       </div>
 

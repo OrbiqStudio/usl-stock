@@ -8,6 +8,7 @@ import {
   CreditCard,
   FileText,
   MoreHorizontal,
+  PackageMinus,
 } from "lucide-react";
 import type { Commande, MoyenPaiement } from "@/types";
 import { formatEuros } from "@/lib/money";
@@ -26,6 +27,8 @@ export function CommandeRecap({
   onRemove,
   onOpenRemise,
   onQuickPay,
+  remboursementSeul,
+  onRendreConsigne,
 }: {
   commande?: Commande;
   onIncrement: (index: number) => void;
@@ -33,6 +36,9 @@ export function CommandeRecap({
   onRemove: (index: number) => void;
   onOpenRemise: () => void;
   onQuickPay: (moyen: MoyenPaiement) => void;
+  /** Commande ne contenant que des consignes rendues : un seul bouton « Consigne rendue ». */
+  remboursementSeul: boolean;
+  onRendreConsigne: () => void;
 }) {
   if (!commande) {
     return (
@@ -129,21 +135,30 @@ export function CommandeRecap({
           </div>
         </div>
 
+        {remboursementSeul ? (
+          <button
+            onClick={onRendreConsigne}
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-base font-bold text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            <PackageMinus className="h-5 w-5" /> Consigne rendue ({formatEuros(-commande.totalTTC)})
+          </button>
+        ) : (
         <div className="mt-4 grid grid-cols-4 gap-2">
-          {PAYMENT_ICONS.map((m) => (
-            <button
-              key={m.key}
-              onClick={() => canPay && onQuickPay(m.key)}
-              disabled={!canPay}
-              className="flex flex-col items-center gap-1 rounded-xl border-2 border-border py-2.5 text-primary transition-colors hover:border-primary hover:bg-usl-blue-light disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-border disabled:hover:bg-transparent"
-              title={m.label}
-              aria-label={`Encaisser en ${m.label.toLowerCase()}`}
-            >
-              {m.icon}
-              <span className="text-[10px] font-bold leading-none">{m.label}</span>
-            </button>
-          ))}
-        </div>
+            {PAYMENT_ICONS.map((m) => (
+              <button
+                key={m.key}
+                onClick={() => canPay && onQuickPay(m.key)}
+                disabled={!canPay}
+                className="flex flex-col items-center gap-1 rounded-xl border-2 border-border py-2.5 text-primary transition-colors hover:border-primary hover:bg-usl-blue-light disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-border disabled:hover:bg-transparent"
+                title={m.label}
+                aria-label={`Encaisser en ${m.label.toLowerCase()}`}
+              >
+                {m.icon}
+                <span className="text-[10px] font-bold leading-none">{m.label}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

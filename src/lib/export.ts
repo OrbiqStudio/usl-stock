@@ -1,7 +1,8 @@
 import * as XLSX from "xlsx";
 import { articlesCol, commandesCol, matchsCol, dossiersCol } from "@/lib/collections";
 import { centsToEuros, formatEuros } from "@/lib/money";
-import { MOYEN_PAIEMENT_LABELS, type Commande, type MoyenPaiement } from "@/types";
+import { consigneStats } from "@/lib/data";
+import { CONSIGNE_PRIX, MOYEN_PAIEMENT_LABELS, type Commande, type MoyenPaiement } from "@/types";
 
 export type ExportFilter =
   | { type: "match"; matchId: string }
@@ -102,6 +103,14 @@ export function generateExcelExport(filter: ExportFilter) {
 
   const alerteArticles = articles.filter((a) => a.stock <= a.seuilAlerte);
 
+  const consignes = payees.reduce(
+    (t, c) => {
+      const cs = consigneStats(c);
+      return { facturee: t.facturee + cs.facturee, rendue: t.rendue + cs.rendue };
+    },
+    { facturee: 0, rendue: 0 }
+  );
+
   const resumeRows: Row[] = [
     { Indicateur: "Valeur totale du stock (achat)", Valeur: formatEuros(articles.reduce((s, a) => s + a.prixAchat * a.stock, 0)) },
     { Indicateur: "Valeur totale du stock (vente)", Valeur: formatEuros(articles.reduce((s, a) => s + a.prixVente * a.stock, 0)) },
@@ -109,6 +118,14 @@ export function generateExcelExport(filter: ExportFilter) {
     { Indicateur: "Marge totale (période sélectionnée)", Valeur: formatEuros(margeTotale) },
     { Indicateur: "Nombre de commandes payées", Valeur: payees.length },
     { Indicateur: "Panier moyen", Valeur: formatEuros(panierMoyen) },
+    { Indicateur: "", Valeur: "" },
+    { Indicateur: "--- Consignes ---", Valeur: "" },
+    { Indicateur: "Consignes encaissées", Valeur: `${consignes.facturee} (${formatEuros(consignes.facturee * CONSIGNE_PRIX)})` },
+    { Indicateur: "Consignes rendues", Valeur: `${consignes.rendue} (${formatEuros(consignes.rendue * CONSIGNE_PRIX)})` },
+    {
+      Indicateur: "Solde (consignes en circulation)",
+      Valeur: `${consignes.facturee - consignes.rendue} (${formatEuros((consignes.facturee - consignes.rendue) * CONSIGNE_PRIX)})`,
+    },
     { Indicateur: "", Valeur: "" },
     { Indicateur: "--- Répartition par moyen de paiement ---", Valeur: "" },
     ...Object.entries(parMoyen).map(([k, v]) => ({
