@@ -32,6 +32,7 @@ import { OtherOrdersBar } from "@/screens/direct/components/OtherOrdersBar";
 import { RemiseDialog } from "@/screens/direct/components/RemiseDialog";
 import { AnnulerDialog } from "@/screens/direct/components/AnnulerDialog";
 import { EncaissementDialog } from "@/screens/direct/components/EncaissementDialog";
+import { playAlertSound } from "@/lib/sound";
 import { LowStockPopup } from "@/screens/direct/components/LowStockPopup";
 import { ContenanceDialog } from "@/screens/direct/components/ContenanceDialog";
 import { PackSlotDialog } from "@/screens/direct/components/PackSlotDialog";
@@ -93,12 +94,15 @@ export default function CaisseScreen() {
       const newly: { id: string; nom: string; stock: number }[] = [];
       allArticles.forEach((a) => {
         const before = prev[a.id];
-        if (before !== undefined && before > a.seuilAlerte && a.stock <= a.seuilAlerte && a.stock > 0) {
-          newly.push({ id: crypto.randomUUID(), nom: a.nom, stock: a.stock });
-        }
+        if (before === undefined) return;
+        const rupture = before > 0 && a.stock <= 0;
+        const bas = before > a.seuilAlerte && a.stock <= a.seuilAlerte && a.stock > 0;
+        if (rupture || bas) newly.push({ id: crypto.randomUUID(), nom: a.nom, stock: Math.max(a.stock, 0) });
       });
-      if (newly.length > 0 && !encaissementOpen) {
+      if (newly.length > 0) {
+        // L'alerte est mise en file et s'affiche dès que la fenêtre d'encaissement est fermée.
         setLowStockQueue((q) => [...q, ...newly]);
+        if (newly.some((n) => n.stock <= 0)) playAlertSound();
       }
     }
     const map: Record<string, number> = {};
@@ -329,7 +333,7 @@ export default function CaisseScreen() {
         onConfirmed={handlePaiementConfirme}
       />
 
-      {lowStockQueue[0] && (
+      {lowStockQueue[0] && !encaissementOpen && (
         <LowStockPopup
           articleNom={lowStockQueue[0].nom}
           stock={lowStockQueue[0].stock}
