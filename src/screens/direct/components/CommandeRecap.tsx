@@ -10,7 +10,7 @@ import {
   MoreHorizontal,
   PackageMinus,
 } from "lucide-react";
-import type { Commande, MoyenPaiement } from "@/types";
+import { CONSIGNE_ARTICLE_ID, type Commande, type MoyenPaiement } from "@/types";
 import { formatEuros } from "@/lib/money";
 
 const PAYMENT_ICONS: { key: MoyenPaiement; label: string; icon: React.ReactNode }[] = [
@@ -73,21 +73,25 @@ export function CommandeRecap({
                   <div className="truncate text-sm font-semibold">{ligne.articleNom}</div>
                   <div className="text-xs text-muted-foreground">{formatEuros(ligne.prixUnitaire)} / u</div>
                 </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => onDecrement(i)}
-                    className="flex h-7 w-7 items-center justify-center rounded-full bg-white hover:bg-slate-200"
-                  >
-                    <Minus className="h-3.5 w-3.5" />
-                  </button>
+                {ligne.articleId === CONSIGNE_ARTICLE_ID ? (
                   <span className="w-6 text-center text-sm font-bold">{ligne.quantite}</span>
-                  <button
-                    onClick={() => onIncrement(i)}
-                    className="flex h-7 w-7 items-center justify-center rounded-full bg-white hover:bg-slate-200"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                  </button>
-                </div>
+                ) : (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => onDecrement(i)}
+                      className="flex h-7 w-7 items-center justify-center rounded-full bg-white hover:bg-slate-200"
+                    >
+                      <Minus className="h-3.5 w-3.5" />
+                    </button>
+                    <span className="w-6 text-center text-sm font-bold">{ligne.quantite}</span>
+                    <button
+                      onClick={() => onIncrement(i)}
+                      className="flex h-7 w-7 items-center justify-center rounded-full bg-white hover:bg-slate-200"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
                 <div className="w-16 text-right text-sm font-bold">{formatEuros(ligne.sousTotal)}</div>
                 <button
                   onClick={() => onRemove(i)}
