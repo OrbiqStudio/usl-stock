@@ -165,6 +165,8 @@ export function AdminMatchsTab() {
           title={`Fond de caisse initial ${fondBuvette ? "boutique" : "buvette"} — ${startTarget.nom}`}
           description={`Étape ${fondBuvette ? 2 : 1}/2 — comptez le fond de caisse de départ de la ${fondBuvette ? "boutique" : "buvette"}.`}
           coupuresActives={config.coupuresActives}
+          section={fondBuvette ? "boutique" : "buvette"}
+          phase="initial"
           onSubmit={handleStart}
         />
       )}
@@ -183,6 +185,8 @@ export function AdminMatchsTab() {
           description={`Étape ${fondBuvette ? 2 : 1}/2 — recomptez la caisse de la ${fondBuvette ? "boutique" : "buvette"}.`}
           coupuresActives={config.coupuresActives}
           expectedTotal={expectedTotalForEnd(endTarget, fondBuvette ? "boutique" : "buvette")}
+          section={fondBuvette ? "boutique" : "buvette"}
+          phase="final"
           onSubmit={handleEnd}
         />
       )}
